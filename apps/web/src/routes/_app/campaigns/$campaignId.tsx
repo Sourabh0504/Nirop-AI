@@ -3,14 +3,14 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ArrowLeft, Plus, Loader2, Trash2, CheckCircle2, Circle, Sparkles } from "lucide-react";
+import { ArrowLeft, Plus, Loader2, Trash2, CheckCircle2, Circle, Sparkles, Send } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardValue } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -26,7 +26,9 @@ import {
   useUpdateVariant,
   useDeleteVariant,
   useGenerateVariants,
+  useSendCampaign,
 } from "@/hooks/use-campaigns";
+import { useCampaignStats } from "@/hooks/use-logs";
 import { ApiError } from "@/lib/api";
 import type { CampaignStatus } from "@/lib/types";
 
@@ -64,11 +66,14 @@ function CampaignDetail() {
   const { campaignId } = Route.useParams();
   const [open, setOpen] = useState(false);
   const [generateOpen, setGenerateOpen] = useState(false);
+  const [sendOpen, setSendOpen] = useState(false);
   const { data: campaign, isPending } = useCampaign(campaignId);
+  const { data: stats } = useCampaignStats(campaignId);
   const createVariant = useCreateVariant(campaignId);
   const updateVariant = useUpdateVariant(campaignId);
   const deleteVariant = useDeleteVariant(campaignId);
   const generateVariants = useGenerateVariants(campaignId);
+  const sendCampaign = useSendCampaign(campaignId);
 
   const {
     register,
@@ -138,6 +143,16 @@ function CampaignDetail() {
     }
   }
 
+  async function handleSend() {
+    try {
+      await sendCampaign.mutateAsync();
+      toast.success("Campaign queued for sending");
+      setSendOpen(false);
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Failed to send campaign");
+    }
+  }
+
   if (isPending) {
     return <div className="text-muted-foreground text-sm">Loading campaign…</div>;
   }
@@ -147,6 +162,8 @@ function CampaignDetail() {
   }
 
   const approvedCount = campaign.variants.filter((v) => v.approved).length;
+  const alreadySent = campaign.status !== "draft" && campaign.status !== "content";
+  const canSend = approvedCount > 0 && !alreadySent;
 
   return (
     <div className="flex flex-col gap-6">
@@ -163,6 +180,36 @@ function CampaignDetail() {
             <Badge variant={statusVariant[campaign.status]}>{campaign.status}</Badge>
           </div>
           <div className="flex items-center gap-2">
+            <Dialog open={sendOpen} onOpenChange={setSendOpen}>
+              <Button
+                size="sm"
+                variant={alreadySent ? "outline" : "default"}
+                disabled={!canSend}
+                onClick={() => setSendOpen(true)}
+                title={alreadySent ? `Already ${campaign.status}` : undefined}
+              >
+                <Send className="size-4" /> {alreadySent ? campaign.status : "Send campaign"}
+              </Button>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Send this campaign?</DialogTitle>
+                  <DialogDescription>
+                    This dispatches to every active subscriber on <strong>{campaign.site}</strong> right
+                    away via the Celery worker — there's no scheduling/delay yet, this sends now.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter className="mt-2">
+                  <Button variant="outline" onClick={() => setSendOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleSend} disabled={sendCampaign.isPending}>
+                    {sendCampaign.isPending && <Loader2 className="size-4 animate-spin" />}
+                    Send now
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
             <Dialog open={generateOpen} onOpenChange={setGenerateOpen}>
               <Button size="sm" variant="outline" onClick={() => setGenerateOpen(true)}>
                 <Sparkles className="size-4" /> Generate with AI
@@ -268,6 +315,27 @@ function CampaignDetail() {
           {campaign.site} · {approvedCount} of {campaign.variants.length} variants approved
         </p>
       </div>
+
+      {stats && stats.queued + stats.sent + stats.failed + stats.retrying > 0 && (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <Card>
+            <CardHeader><CardTitle>Queued</CardTitle></CardHeader>
+            <CardContent><CardValue>{stats.queued}</CardValue></CardContent>
+          </Card>
+          <Card>
+            <CardHeader><CardTitle>Sent</CardTitle></CardHeader>
+            <CardContent><CardValue className="text-success">{stats.sent}</CardValue></CardContent>
+          </Card>
+          <Card>
+            <CardHeader><CardTitle>Failed</CardTitle></CardHeader>
+            <CardContent><CardValue className="text-destructive">{stats.failed}</CardValue></CardContent>
+          </Card>
+          <Card>
+            <CardHeader><CardTitle>Retrying</CardTitle></CardHeader>
+            <CardContent><CardValue>{stats.retrying}</CardValue></CardContent>
+          </Card>
+        </div>
+      )}
 
       {campaign.variants.length === 0 ? (
         <EmptyState

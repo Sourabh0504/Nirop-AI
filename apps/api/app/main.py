@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import auth, campaigns, mailboxes, subscribers
+from app.api.routes import auth, campaigns, logs, mailboxes, subscribers
 from app.core.config import get_settings
 
 settings = get_settings()
@@ -20,6 +20,7 @@ app.include_router(auth.router)
 app.include_router(mailboxes.router)
 app.include_router(campaigns.router)
 app.include_router(subscribers.router)
+app.include_router(logs.router)
 
 
 @app.get("/health")

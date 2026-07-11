@@ -48,6 +48,17 @@ export function useDeleteCampaign() {
   });
 }
 
+export function useSendCampaign(campaignId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.post<Campaign>(`/api/campaigns/${campaignId}/send`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: campaignKey(campaignId) });
+      queryClient.invalidateQueries({ queryKey: CAMPAIGNS_KEY });
+    },
+  });
+}
+
 export function useCreateVariant(campaignId: string) {
   const queryClient = useQueryClient();
   return useMutation({

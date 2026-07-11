@@ -144,7 +144,7 @@ class SendEvent(Base):
     id: Mapped[str] = mapped_column(primary_key=True, default=generate_id)
     batch_id: Mapped[str] = mapped_column(ForeignKey("send_batches.id"))
     subscriber_id: Mapped[str] = mapped_column(ForeignKey("subscribers.id"))
-    mailbox_id: Mapped[str] = mapped_column(ForeignKey("mailboxes.id"))
+    mailbox_id: Mapped[str | None] = mapped_column(ForeignKey("mailboxes.id"), default=None)
     status: Mapped[SendStatus] = mapped_column(default=SendStatus.QUEUED, index=True)
     error: Mapped[str | None]
     provider_message_id: Mapped[str | None]

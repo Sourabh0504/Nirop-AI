@@ -1,10 +1,19 @@
 from fastapi import APIRouter, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import CurrentUser
 from app.core.db import DbSession
-from app.models.models import Campaign, CampaignVariant
+from app.models.models import (
+    Campaign,
+    CampaignStatus,
+    CampaignVariant,
+    SendBatch,
+    SendEvent,
+    SendStatus,
+    Subscriber,
+    SubscriberStatus,
+)
 from app.schemas.campaign import (
     CampaignCreate,
     CampaignDetail,
@@ -16,7 +25,9 @@ from app.schemas.campaign import (
     VariantGenerateRequest,
     VariantGenerateResponse,
 )
+from app.schemas.logs import CampaignStats
 from app.services.ai_variants import VariantGenerationError, generate_variants
+from app.workers.tasks import dispatch_campaign
 
 router = APIRouter(prefix="/api/campaigns", tags=["campaigns"])
 
@@ -50,6 +61,23 @@ async def get_campaign(campaign_id: str, db: DbSession, _current_user: CurrentUs
     return await _get_campaign_or_404(db, campaign_id)
 
 
+@router.get("/{campaign_id}/stats", response_model=CampaignStats)
+async def get_campaign_stats(campaign_id: str, db: DbSession, _current_user: CurrentUser) -> CampaignStats:
+    rows = await db.execute(
+        select(SendEvent.status, func.count())
+        .join(SendBatch, SendEvent.batch_id == SendBatch.id)
+        .where(SendBatch.campaign_id == campaign_id)
+        .group_by(SendEvent.status)
+    )
+    counts = {status_value: count for status_value, count in rows.all()}
+    return CampaignStats(
+        queued=counts.get(SendStatus.QUEUED, 0),
+        sent=counts.get(SendStatus.SENT, 0),
+        failed=counts.get(SendStatus.FAILED, 0),
+        retrying=counts.get(SendStatus.RETRYING, 0),
+    )
+
+
 @router.patch("/{campaign_id}", response_model=CampaignRead)
 async def update_campaign(
     campaign_id: str, payload: CampaignUpdate, db: DbSession, _current_user: CurrentUser
@@ -67,6 +95,34 @@ async def delete_campaign(campaign_id: str, db: DbSession, _current_user: Curren
     campaign = await _get_campaign_or_404(db, campaign_id)
     await db.delete(campaign)
     await db.commit()
+
+
+@router.post("/{campaign_id}/send", response_model=CampaignRead)
+async def send_campaign(campaign_id: str, db: DbSession, _current_user: CurrentUser) -> Campaign:
+    campaign = await _get_campaign_or_404(db, campaign_id)
+
+    if campaign.status in (CampaignStatus.SCHEDULED, CampaignStatus.ACTIVE, CampaignStatus.COMPLETED):
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, f"Campaign is already {campaign.status.value} — refusing to re-send"
+        )
+
+    if not any(variant.approved for variant in campaign.variants):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Approve at least one variant before sending")
+
+    subscriber_count = await db.scalar(
+        select(func.count())
+        .select_from(Subscriber)
+        .where(Subscriber.source_site == campaign.site, Subscriber.status == SubscriberStatus.ACTIVE)
+    )
+    if not subscriber_count:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "No active subscribers for this site")
+
+    campaign.status = CampaignStatus.SCHEDULED
+    await db.commit()
+    await db.refresh(campaign)
+
+    dispatch_campaign.delay(campaign.id)
+    return campaign
 
 
 @router.post(

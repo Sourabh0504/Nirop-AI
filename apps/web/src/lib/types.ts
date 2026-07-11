@@ -108,3 +108,22 @@ export interface DedupeReport {
   bounced: number;
   suppressed: number;
 }
+
+export type SendEventStatus = "queued" | "sent" | "failed" | "retrying";
+
+export interface SendEventLog {
+  id: string;
+  status: SendEventStatus;
+  error: string | null;
+  created_at: string;
+  campaign_name: string;
+  subscriber_email: string;
+  mailbox_label: string | null;
+}
+
+export interface CampaignStats {
+  queued: number;
+  sent: number;
+  failed: number;
+  retrying: number;
+}
