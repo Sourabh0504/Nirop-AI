@@ -18,8 +18,8 @@ class Settings(BaseSettings):
 
     smtp_encryption_key: str = "change-me-32-bytes-min-for-aesgcm"
 
-    anthropic_api_key: str | None = None
-    anthropic_model: str = "claude-sonnet-5"
+    openai_api_key: str | None = None
+    openai_model: str = "gpt-4o-mini"
 
     google_service_account_json: str | None = None
 

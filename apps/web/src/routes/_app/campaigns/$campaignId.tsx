@@ -114,7 +114,7 @@ function CampaignDetail() {
       toast.error(
         err instanceof ApiError
           ? err.status === 502
-            ? "AI generation isn't configured yet — set ANTHROPIC_API_KEY on the backend."
+            ? "AI generation isn't configured yet — set OPENAI_API_KEY on the backend."
             : err.message
           : "Failed to generate variants",
       );

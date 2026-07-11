@@ -1,6 +1,6 @@
 import json
 
-from anthropic import Anthropic
+from openai import OpenAI
 
 from app.core.config import get_settings
 
@@ -25,7 +25,7 @@ def flag_spam_words(text: str) -> list[str]:
 
 def _build_prompt(base_subject: str, base_html_body: str, base_text_body: str, count: int) -> str:
     return f"""You are writing subject/body variants for a job-update newsletter. \
-Given a base email below, produce {count} distinct variants as a JSON array.
+Given a base email below, produce {count} distinct variants.
 
 Rules:
 - Each variant must preserve every link and the unsubscribe placeholder from the base body exactly.
@@ -42,35 +42,36 @@ Base HTML body:
 Base text body:
 {base_text_body}
 
-Respond with ONLY a JSON array of {count} objects, each shaped exactly like:
-{{"subject": "...", "html_body": "...", "text_body": "..."}}
-No prose, no markdown fences — just the raw JSON array."""
+Respond with ONLY a JSON object shaped exactly like:
+{{"variants": [{{"subject": "...", "html_body": "...", "text_body": "..."}}, ...]}}
+containing exactly {count} entries in the "variants" array. No prose, no markdown fences."""
 
 
 def generate_variants(
     base_subject: str, base_html_body: str, base_text_body: str, count: int = 10
 ) -> list[dict]:
-    if not settings.anthropic_api_key:
-        raise VariantGenerationError("ANTHROPIC_API_KEY is not configured")
+    if not settings.openai_api_key:
+        raise VariantGenerationError("OPENAI_API_KEY is not configured")
 
-    client = Anthropic(api_key=settings.anthropic_api_key)
+    client = OpenAI(api_key=settings.openai_api_key)
     prompt = _build_prompt(base_subject, base_html_body, base_text_body, count)
 
-    response = client.messages.create(
-        model=settings.anthropic_model,
-        max_tokens=4096,
+    response = client.chat.completions.create(
+        model=settings.openai_model,
         messages=[{"role": "user", "content": prompt}],
+        response_format={"type": "json_object"},
     )
 
-    raw_text = "".join(block.text for block in response.content if block.type == "text").strip()
+    raw_text = (response.choices[0].message.content or "").strip()
 
     try:
-        variants = json.loads(raw_text)
+        data = json.loads(raw_text)
     except json.JSONDecodeError as exc:
         raise VariantGenerationError(f"Model did not return valid JSON: {exc}") from exc
 
+    variants = data.get("variants") if isinstance(data, dict) else None
     if not isinstance(variants, list):
-        raise VariantGenerationError("Model response was not a JSON array")
+        raise VariantGenerationError("Model response did not contain a 'variants' array")
 
     cleaned: list[dict] = []
     for item in variants:
