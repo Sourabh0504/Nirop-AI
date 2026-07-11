@@ -137,12 +137,10 @@ async def send_campaign(campaign_id: str, db: DbSession, _current_user: CurrentU
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Approve at least one variant before sending")
 
     subscriber_count = await db.scalar(
-        select(func.count())
-        .select_from(Subscriber)
-        .where(Subscriber.source_site == campaign.site, Subscriber.status == SubscriberStatus.ACTIVE)
+        select(func.count()).select_from(Subscriber).where(Subscriber.status == SubscriberStatus.ACTIVE)
     )
     if not subscriber_count:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "No active subscribers for this site")
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "No active subscribers")
 
     campaign.status = CampaignStatus.SCHEDULED
     await db.commit()

@@ -10,7 +10,6 @@ import { EmptyState } from "@/components/layout/empty-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardValue } from "@/components/ui/card";
 import {
@@ -35,7 +34,6 @@ const subscriberSchema = z.object({
   email: z.string().email("Enter a valid email"),
   first_name: z.string().optional(),
   last_name: z.string().optional(),
-  source_site: z.string().min(1, "Required"),
   tags: z.string().optional(),
 });
 
@@ -60,10 +58,7 @@ function Subscribers() {
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<SubscriberFormValues>({
-    resolver: zodResolver(subscriberSchema),
-    defaultValues: { source_site: "jobsociety" },
-  });
+  } = useForm<SubscriberFormValues>({ resolver: zodResolver(subscriberSchema) });
 
   async function onSubmit(values: SubscriberFormValues) {
     try {
@@ -71,13 +66,12 @@ function Subscribers() {
         email: values.email,
         first_name: values.first_name || undefined,
         last_name: values.last_name || undefined,
-        source_site: values.source_site,
         tags: values.tags
           ? values.tags.split(",").map((t) => t.trim()).filter(Boolean)
           : [],
       });
       toast.success(`Added ${values.email}`);
-      reset({ source_site: values.source_site, email: "", first_name: "", last_name: "", tags: "" });
+      reset({ email: "", first_name: "", last_name: "", tags: "" });
       setOpen(false);
     } catch (err) {
       toast.error(
@@ -103,7 +97,7 @@ function Subscribers() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Subscribers"
-        description="Manually added for now — Google Sheets bulk sync lands in a later milestone."
+        description="One shared list across all campaigns — manually added for now, Google Sheets bulk sync lands in a later milestone."
         actions={
           <Dialog open={open} onOpenChange={setOpen}>
             <Button size="sm" onClick={() => setOpen(true)}>
@@ -131,14 +125,7 @@ function Subscribers() {
                   </div>
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="source_site">Site</Label>
-                  <Select id="source_site" {...register("source_site")}>
-                    <option value="jobsociety">JobSociety.in</option>
-                    <option value="testingsociety">TestingSociety.com</option>
-                  </Select>
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="tags">Tags (comma separated)</Label>
+                  <Label htmlFor="tags">Labels (comma separated)</Label>
                   <Input id="tags" placeholder="engineering, remote" {...register("tags")} />
                 </div>
                 <DialogFooter className="mt-2">
@@ -191,7 +178,7 @@ function Subscribers() {
               <TableRow>
                 <TableHead className="rounded-tl-xl pl-5">Email</TableHead>
                 <TableHead>Name</TableHead>
-                <TableHead>Site</TableHead>
+                <TableHead>Labels</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="w-12 rounded-tr-xl pr-5" />
               </TableRow>
@@ -210,7 +197,19 @@ function Subscribers() {
                   <TableCell className="text-muted-foreground">
                     {[s.first_name, s.last_name].filter(Boolean).join(" ") || "—"}
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{s.source_site}</TableCell>
+                  <TableCell>
+                    {s.tags.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {s.tags.map((tag) => (
+                          <Badge key={tag} variant="outline">
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
                   <TableCell>
                     <Badge variant={statusVariant[s.status]}>{s.status}</Badge>
                   </TableCell>

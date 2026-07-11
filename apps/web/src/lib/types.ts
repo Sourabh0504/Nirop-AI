@@ -88,7 +88,6 @@ export interface Subscriber {
   email: string;
   first_name: string | null;
   last_name: string | null;
-  source_site: string;
   tags: string[];
   status: SubscriberStatus;
   created_at: string;
@@ -98,7 +97,6 @@ export interface SubscriberCreateInput {
   email: string;
   first_name?: string;
   last_name?: string;
-  source_site: string;
   tags: string[];
 }
 

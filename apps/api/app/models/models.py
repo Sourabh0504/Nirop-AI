@@ -60,7 +60,6 @@ class Subscriber(Base):
     email: Mapped[str] = mapped_column(unique=True, index=True)
     first_name: Mapped[str | None]
     last_name: Mapped[str | None]
-    source_site: Mapped[str]
     tags: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
     status: Mapped[SubscriberStatus] = mapped_column(default=SubscriberStatus.ACTIVE, index=True)
     source_row_hash: Mapped[str | None]

@@ -9,7 +9,6 @@ class SubscriberCreate(BaseModel):
     email: EmailStr
     first_name: str | None = None
     last_name: str | None = None
-    source_site: str
     tags: list[str] = []
 
 
@@ -23,7 +22,6 @@ class SubscriberRead(BaseModel):
     email: str
     first_name: str | None
     last_name: str | None
-    source_site: str
     tags: list[str]
     status: SubscriberStatus
     created_at: datetime

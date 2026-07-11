@@ -14,13 +14,10 @@ async def list_subscribers(
     db: DbSession,
     _current_user: CurrentUser,
     status_filter: SubscriberStatus | None = None,
-    site: str | None = None,
 ) -> list[Subscriber]:
     query = select(Subscriber).order_by(Subscriber.created_at.desc())
     if status_filter is not None:
         query = query.where(Subscriber.status == status_filter)
-    if site is not None:
-        query = query.where(Subscriber.source_site == site)
     result = await db.scalars(query)
     return list(result.all())
 
@@ -53,7 +50,6 @@ async def create_subscriber(
         email=email,
         first_name=payload.first_name,
         last_name=payload.last_name,
-        source_site=payload.source_site,
         tags=payload.tags,
     )
     db.add(subscriber)

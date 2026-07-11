@@ -44,14 +44,11 @@ async def _dispatch_campaign(campaign_id: str) -> dict:
             return {"error": "no approved variants"}
 
         subscribers_result = await db.scalars(
-            select(Subscriber).where(
-                Subscriber.source_site == campaign.site,
-                Subscriber.status == SubscriberStatus.ACTIVE,
-            )
+            select(Subscriber).where(Subscriber.status == SubscriberStatus.ACTIVE)
         )
         subscribers = list(subscribers_result.all())
         if not subscribers:
-            return {"error": "no active subscribers for this site"}
+            return {"error": "no active subscribers"}
 
         batch_size = campaign.batch_size
         chunks = [subscribers[i : i + batch_size] for i in range(0, len(subscribers), batch_size)]
