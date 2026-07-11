@@ -27,6 +27,12 @@ class Settings(BaseSettings):
 
     google_service_account_json: str | None = None
 
+    # Deliverability circuit breaker: a campaign auto-pauses once it has attempted at
+    # least `min_sample` sends AND either rate below is exceeded.
+    circuit_breaker_min_sample: int = 20
+    circuit_breaker_failure_rate: float = 0.15
+    circuit_breaker_unsub_rate: float = 0.02
+
 
 @lru_cache
 def get_settings() -> Settings:

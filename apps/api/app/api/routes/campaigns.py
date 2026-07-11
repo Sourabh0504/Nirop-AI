@@ -30,7 +30,7 @@ from app.schemas.campaign import (
 )
 from app.schemas.logs import CampaignStats
 from app.services.ai_variants import VariantGenerationError, generate_variants
-from app.workers.tasks import dispatch_campaign
+from app.workers.tasks import dispatch_campaign, send_email_task
 
 router = APIRouter(prefix="/api/campaigns", tags=["campaigns"])
 
@@ -122,9 +122,15 @@ async def delete_campaign(campaign_id: str, db: DbSession, _current_user: Curren
 async def send_campaign(campaign_id: str, db: DbSession, _current_user: CurrentUser) -> Campaign:
     campaign = await _get_campaign_or_404(db, campaign_id)
 
-    if campaign.status in (CampaignStatus.SCHEDULED, CampaignStatus.ACTIVE, CampaignStatus.COMPLETED):
+    if campaign.status in (
+        CampaignStatus.SCHEDULED,
+        CampaignStatus.ACTIVE,
+        CampaignStatus.PAUSED,
+        CampaignStatus.COMPLETED,
+    ):
         raise HTTPException(
-            status.HTTP_400_BAD_REQUEST, f"Campaign is already {campaign.status.value} — refusing to re-send"
+            status.HTTP_400_BAD_REQUEST,
+            f"Campaign is already {campaign.status.value} — use /resume if it was auto-paused",
         )
 
     if not any(variant.approved for variant in campaign.variants):
@@ -143,6 +149,29 @@ async def send_campaign(campaign_id: str, db: DbSession, _current_user: CurrentU
     await db.refresh(campaign)
 
     dispatch_campaign.delay(campaign.id)
+    return campaign
+
+
+@router.post("/{campaign_id}/resume", response_model=CampaignRead)
+async def resume_campaign(campaign_id: str, db: DbSession, _current_user: CurrentUser) -> Campaign:
+    campaign = await _get_campaign_or_404(db, campaign_id)
+
+    if campaign.status != CampaignStatus.PAUSED:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Campaign is not paused")
+
+    campaign.status = CampaignStatus.ACTIVE
+    campaign.pause_reason = None
+    await db.commit()
+    await db.refresh(campaign)
+
+    queued_event_ids = await db.scalars(
+        select(SendEvent.id)
+        .join(SendBatch, SendEvent.batch_id == SendBatch.id)
+        .where(SendBatch.campaign_id == campaign_id, SendEvent.status == SendStatus.QUEUED)
+    )
+    for event_id in queued_event_ids:
+        send_email_task.delay(event_id)
+
     return campaign
 
 

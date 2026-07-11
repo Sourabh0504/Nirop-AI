@@ -15,6 +15,7 @@ from app.models.models import (
     Subscriber,
     SubscriberStatus,
 )
+from app.services.circuit_breaker import check_and_maybe_pause
 from app.services.mailbox_rotation import bump_usage, pick_mailbox
 from app.services.mailer import send_email_smtp
 from app.services.rate_limiter import DailyLimitReachedError, RateLimitedError, check_and_increment
@@ -108,6 +109,11 @@ async def _send_email(send_event_id: str) -> dict:
         variant = await db.get(CampaignVariant, batch.variant_id)
         subscriber = await db.get(Subscriber, event.subscriber_id)
 
+        if await check_and_maybe_pause(db, batch.campaign_id):
+            # Paused (by this check or a prior one) — leave the event QUEUED so
+            # /campaigns/{id}/resume can pick it back up, don't count it as a failure.
+            return {"status": "skipped - campaign paused"}
+
         if subscriber.status != SubscriberStatus.ACTIVE:
             # Caught between dispatch and send (e.g. they unsubscribed via a link in an
             # earlier campaign while this one was queued/retrying).
@@ -121,6 +127,7 @@ async def _send_email(send_event_id: str) -> dict:
             event.status = SendStatus.FAILED
             event.error = "No eligible mailbox available"
             await db.commit()
+            await check_and_maybe_pause(db, batch.campaign_id)
             return {"error": "no eligible mailbox"}
 
         # Raises RateLimitedError/DailyLimitReachedError to the sync task wrapper,
@@ -146,10 +153,12 @@ async def _send_email(send_event_id: str) -> dict:
             event.error = str(exc)
             event.mailbox_id = mailbox.id
             await db.commit()
+            await check_and_maybe_pause(db, batch.campaign_id)
             return {"error": str(exc)}
 
         event.status = SendStatus.SENT
         event.mailbox_id = mailbox.id
         await bump_usage(db, mailbox.id)
         await db.commit()
+        await check_and_maybe_pause(db, batch.campaign_id)
         return {"status": "sent", "mailbox": mailbox.id}

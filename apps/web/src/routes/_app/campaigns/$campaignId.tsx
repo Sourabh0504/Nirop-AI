@@ -3,7 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ArrowLeft, Plus, Loader2, Trash2, CheckCircle2, Circle, Sparkles, Send } from "lucide-react";
+import { ArrowLeft, Plus, Loader2, Trash2, CheckCircle2, Circle, Sparkles, Send, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,7 @@ import {
   useDeleteVariant,
   useGenerateVariants,
   useSendCampaign,
+  useResumeCampaign,
 } from "@/hooks/use-campaigns";
 import { useCampaignStats } from "@/hooks/use-logs";
 import { ApiError } from "@/lib/api";
@@ -74,6 +75,7 @@ function CampaignDetail() {
   const deleteVariant = useDeleteVariant(campaignId);
   const generateVariants = useGenerateVariants(campaignId);
   const sendCampaign = useSendCampaign(campaignId);
+  const resumeCampaign = useResumeCampaign(campaignId);
 
   const {
     register,
@@ -150,6 +152,15 @@ function CampaignDetail() {
       setSendOpen(false);
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Failed to send campaign");
+    }
+  }
+
+  async function handleResume() {
+    try {
+      await resumeCampaign.mutateAsync();
+      toast.success("Campaign resumed");
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Failed to resume campaign");
     }
   }
 
@@ -315,6 +326,25 @@ function CampaignDetail() {
           {campaign.site} · {approvedCount} of {campaign.variants.length} variants approved
         </p>
       </div>
+
+      {campaign.status === "paused" && (
+        <div className="border-warning/40 bg-warning/10 flex items-center justify-between gap-4 rounded-xl border p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="text-warning-foreground mt-0.5 size-4 shrink-0" />
+            <div>
+              <p className="text-sm font-medium">Campaign auto-paused by the deliverability circuit breaker</p>
+              <p className="text-muted-foreground text-sm">
+                {campaign.pause_reason ?? "Failure or unsubscribe rate exceeded its threshold."} Remaining
+                sends are on hold — review before resuming.
+              </p>
+            </div>
+          </div>
+          <Button size="sm" variant="outline" onClick={handleResume} disabled={resumeCampaign.isPending}>
+            {resumeCampaign.isPending && <Loader2 className="size-4 animate-spin" />}
+            Resume sending
+          </Button>
+        </div>
+      )}
 
       {stats && stats.queued + stats.sent + stats.failed + stats.retrying > 0 && (
         <div className="flex flex-col gap-4">

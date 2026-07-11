@@ -49,6 +49,7 @@ class CampaignRead(BaseModel):
     status: CampaignStatus
     batch_size: int
     scheduled_at: datetime | None
+    pause_reason: str | None
     created_by: str
     created_at: datetime
 

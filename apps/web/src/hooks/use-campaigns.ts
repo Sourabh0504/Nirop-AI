@@ -59,6 +59,17 @@ export function useSendCampaign(campaignId: string) {
   });
 }
 
+export function useResumeCampaign(campaignId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.post<Campaign>(`/api/campaigns/${campaignId}/resume`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: campaignKey(campaignId) });
+      queryClient.invalidateQueries({ queryKey: CAMPAIGNS_KEY });
+    },
+  });
+}
+
 export function useCreateVariant(campaignId: string) {
   const queryClient = useQueryClient();
   return useMutation({

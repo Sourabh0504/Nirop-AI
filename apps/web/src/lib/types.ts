@@ -39,6 +39,7 @@ export interface Campaign {
   status: CampaignStatus;
   batch_size: number;
   scheduled_at: string | null;
+  pause_reason: string | null;
   created_by: string;
   created_at: string;
 }

@@ -77,6 +77,7 @@ class Campaign(Base):
     status: Mapped[CampaignStatus] = mapped_column(default=CampaignStatus.DRAFT)
     batch_size: Mapped[int] = mapped_column(default=100)
     scheduled_at: Mapped[datetime | None]
+    pause_reason: Mapped[str | None] = mapped_column(default=None)
     created_by: Mapped[str]
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
 
