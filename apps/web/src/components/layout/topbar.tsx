@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ThemePicker } from "@/components/layout/theme-picker";
 import { useTheme } from "@/hooks/use-theme";
 import { useHealth } from "@/hooks/use-health";
 import { useCurrentUser, useLogout } from "@/hooks/use-auth";
@@ -50,6 +51,8 @@ export function Topbar() {
         <Button variant="ghost" size="icon" onClick={toggle} aria-label="Toggle theme">
           {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
         </Button>
+
+        <ThemePicker />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

@@ -16,6 +16,9 @@ dist/
 .tanstack/
 *.tsbuildinfo
 
+# Skills (regenerable via `npx skills experimental_install` from skills-lock.json)
+.agents/skills/
+
 # OS
 .DS_Store
 Thumbs.db

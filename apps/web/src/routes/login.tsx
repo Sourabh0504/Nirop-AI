@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Sparkles, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,15 +43,23 @@ function Login() {
   return (
     <div className="bg-background flex min-h-screen">
       <div className="border-border/70 relative hidden w-1/2 flex-col justify-between overflow-hidden border-r bg-sidebar p-10 text-sidebar-foreground lg:flex">
-        <div className="flex items-center gap-2">
-          <div className="bg-sidebar-primary flex size-8 items-center justify-center rounded-lg">
-            <Sparkles className="size-4 text-white" />
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.07]"
+          style={{
+            backgroundImage: "radial-gradient(currentColor 1px, transparent 1px)",
+            backgroundSize: "24px 24px",
+          }}
+        />
+
+        <div className="relative z-10 flex items-center gap-2">
+          <div className="bg-sidebar-primary font-display flex size-8 items-center justify-center rounded-lg text-base font-bold text-white">
+            N
           </div>
-          <span className="text-lg font-semibold">Nirop AI</span>
+          <span className="font-display text-lg font-semibold">Nirop AI</span>
         </div>
 
-        <div className="flex flex-col gap-3">
-          <h2 className="max-w-md text-3xl font-semibold tracking-tight text-white">
+        <div className="relative z-10 flex flex-col gap-3">
+          <h2 className="font-display max-w-md text-3xl font-semibold tracking-tight text-white">
             Own your sending pipeline, end to end.
           </h2>
           <p className="text-sidebar-foreground/60 max-w-sm text-sm">
@@ -60,10 +68,16 @@ function Login() {
           </p>
         </div>
 
-        <p className="text-sidebar-foreground/40 text-xs">&copy; {new Date().getFullYear()} Nirop AI</p>
+        <p className="text-sidebar-foreground/40 relative z-10 text-xs">
+          &copy; {new Date().getFullYear()} Nirop AI
+        </p>
 
         <div
-          className="pointer-events-none absolute -right-24 -top-24 size-96 rounded-full opacity-20 blur-3xl"
+          className="motion-safe:animate-pulse pointer-events-none absolute -top-24 -right-24 size-96 rounded-full opacity-20 blur-3xl [animation-duration:6s]"
+          style={{ background: "radial-gradient(circle, var(--sidebar-primary), transparent 70%)" }}
+        />
+        <div
+          className="pointer-events-none absolute -bottom-32 -left-16 size-72 rounded-full opacity-10 blur-3xl"
           style={{ background: "radial-gradient(circle, var(--sidebar-primary), transparent 70%)" }}
         />
       </div>
@@ -71,7 +85,7 @@ function Login() {
       <div className="flex w-full flex-col items-center justify-center px-6 lg:w-1/2">
         <div className="flex w-full max-w-sm flex-col gap-6">
           <div className="flex flex-col gap-1.5">
-            <h1 className="text-xl font-semibold tracking-tight">Sign in</h1>
+            <h1 className="font-display text-xl font-semibold tracking-tight">Sign in</h1>
             <p className="text-muted-foreground text-sm">Welcome back — enter your credentials to continue.</p>
           </div>
 

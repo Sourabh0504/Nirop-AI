@@ -38,7 +38,7 @@ function CardValue({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-value"
-      className={cn("text-2xl font-semibold tracking-tight", className)}
+      className={cn("font-mono text-2xl font-semibold tabular-nums tracking-tight", className)}
       {...props}
     />
   );
