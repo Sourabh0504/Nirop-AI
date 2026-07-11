@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useLogin } from "@/hooks/use-auth";
+import { ApiError } from "@/lib/api";
 
 export const Route = createFileRoute("/login")({
   component: Login,
@@ -21,16 +23,21 @@ type LoginForm = z.infer<typeof loginSchema>;
 
 function Login() {
   const navigate = useNavigate();
+  const login = useLogin();
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<LoginForm>({ resolver: zodResolver(loginSchema) });
 
-  async function onSubmit() {
-    // Backend auth endpoint not wired yet — placeholder for milestone 7.
-    toast.info("Auth isn't wired up yet — dropping you into the dashboard shell.");
-    await navigate({ to: "/" });
+  async function onSubmit(values: LoginForm) {
+    try {
+      await login.mutateAsync(values);
+      await navigate({ to: "/" });
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "Unable to sign in";
+      toast.error(message || "Invalid email or password");
+    }
   }
 
   return (
@@ -81,8 +88,8 @@ function Login() {
               {errors.password && <p className="text-destructive text-xs">{errors.password.message}</p>}
             </div>
 
-            <Button type="submit" disabled={isSubmitting} className="mt-2">
-              {isSubmitting && <Loader2 className="size-4 animate-spin" />}
+            <Button type="submit" disabled={isSubmitting || login.isPending} className="mt-2">
+              {(isSubmitting || login.isPending) && <Loader2 className="size-4 animate-spin" />}
               Sign in
             </Button>
           </form>

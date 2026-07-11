@@ -1,7 +1,7 @@
 [project]
-name = "mail-ai-api"
+name = "nirop-ai-api"
 version = "0.1.0"
-description = "Mail-AI backend: FastAPI API + Celery workers"
+description = "Nirop AI backend: FastAPI API + Celery workers"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.115",
@@ -11,8 +11,9 @@ dependencies = [
     "alembic>=1.14",
     "pydantic>=2.9",
     "pydantic-settings>=2.6",
+    "email-validator>=2.2",
     "python-jose[cryptography]>=3.3",
-    "passlib[bcrypt]>=1.7",
+    "bcrypt>=4.0",
     "cryptography>=43.0",
     "celery[redis]>=5.4",
     "redis>=5.2",

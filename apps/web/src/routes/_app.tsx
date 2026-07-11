@@ -1,8 +1,17 @@
-import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
+import { api } from "@/lib/api";
+import type { User } from "@/lib/types";
 
 export const Route = createFileRoute("/_app")({
+  beforeLoad: async () => {
+    try {
+      await api.get<User>("/api/auth/me");
+    } catch {
+      throw redirect({ to: "/login" });
+    }
+  },
   component: AppLayout,
 });
 
