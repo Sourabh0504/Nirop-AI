@@ -21,8 +21,7 @@ function DropdownMenuContent({
         data-slot="dropdown-menu-content"
         sideOffset={sideOffset}
         className={cn(
-          "bg-popover/85 text-popover-foreground z-50 min-w-[10rem] overflow-hidden rounded-md border border-border/50 p-1 shadow-lg",
-          "backdrop-blur-xl backdrop-saturate-150",
+          "glass-strong text-popover-foreground z-50 min-w-[10rem] overflow-hidden rounded-md p-1",
           "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
           className,
         )}

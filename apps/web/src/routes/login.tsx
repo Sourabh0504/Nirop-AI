@@ -73,28 +73,30 @@ function Login() {
         </p>
 
         <div
-          className="motion-safe:animate-pulse pointer-events-none absolute -top-24 -right-24 size-96 rounded-full opacity-20 blur-3xl [animation-duration:6s]"
-          style={{ background: "radial-gradient(circle, var(--sidebar-primary), transparent 70%)" }}
+          className="motion-safe:animate-pulse pointer-events-none absolute -top-24 -right-24 size-[28rem] rounded-full opacity-40 blur-[90px] [animation-duration:6s]"
+          style={{ background: "var(--sidebar-primary)" }}
         />
         <div
-          className="pointer-events-none absolute -bottom-32 -left-16 size-72 rounded-full opacity-10 blur-3xl"
-          style={{ background: "radial-gradient(circle, var(--sidebar-primary), transparent 70%)" }}
+          className="pointer-events-none absolute -bottom-32 -left-16 size-80 rounded-full opacity-25 blur-[90px]"
+          style={{ background: "var(--chart-1)" }}
         />
       </div>
 
-      <div className="relative flex w-full flex-col items-center justify-center overflow-hidden px-6 lg:w-1/2">
+      <div className="bg-background relative flex w-full flex-col items-center justify-center overflow-hidden px-6 lg:w-1/2">
         <div
-          className="pointer-events-none absolute -top-20 right-0 size-80 rounded-full opacity-[0.1] blur-[100px]"
+          className="pointer-events-none absolute -top-24 right-0 size-[28rem] rounded-full opacity-50 blur-[100px] dark:opacity-35"
           style={{ background: "var(--chart-1)" }}
-          aria-hidden="true"
         />
         <div
-          className="pointer-events-none absolute -bottom-24 -left-10 size-72 rounded-full opacity-[0.08] blur-[100px]"
+          className="pointer-events-none absolute -bottom-28 -left-16 size-96 rounded-full opacity-40 blur-[100px] dark:opacity-30"
           style={{ background: "var(--primary)" }}
-          aria-hidden="true"
+        />
+        <div
+          className="pointer-events-none absolute top-1/2 left-1/2 size-72 -translate-x-1/2 -translate-y-1/2 rounded-full opacity-30 blur-[110px] dark:opacity-20"
+          style={{ background: "var(--success)" }}
         />
 
-        <div className="surface-elevated bg-card/60 border-border/40 relative flex w-full max-w-sm flex-col gap-6 rounded-2xl border p-8 backdrop-blur-xl backdrop-saturate-150">
+        <div className="glass-strong relative flex w-full max-w-sm flex-col gap-6 rounded-2xl p-8">
           <div className="flex flex-col gap-1.5">
             <h1 className="font-display text-xl font-semibold tracking-tight">Sign in</h1>
             <p className="text-muted-foreground text-sm">Welcome back — enter your credentials to continue.</p>
