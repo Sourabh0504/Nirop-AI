@@ -2,7 +2,7 @@
 
 This extends `Plan.md` (architecture/vision) with concrete, buildable detail: repo layout, schema, APIs, job design, and a milestone-by-milestone build order. Each milestone is meant to be built and verified on its own before moving to the next — this doc is a map, not a build order to execute all at once.
 
-**Stack changed from the original Node/Next.js-only plan to Python/FastAPI for the backend**, specifically because AI features (variant generation now, and likely segmentation/engagement-scoring/content analysis later) are far more natural in the Python ecosystem — direct access to the Anthropic SDK, pandas/numpy, and any future ML tooling without a cross-language bridge.
+**Stack changed from the original Node/Next.js-only plan to Python/FastAPI for the backend**, specifically because AI features (variant generation now, and likely segmentation/engagement-scoring/content analysis later) are far more natural in the Python ecosystem — direct access to the OpenAI SDK, pandas/numpy, and any future ML tooling without a cross-language bridge. Frontend ended up as a vanilla Vite + TanStack Router app (not Next.js — see §9) to reuse the same component/design patterns as the Saarthi-CV dashboard without a Lovable.dev dependency.
 
 ---
 
@@ -11,12 +11,12 @@ This extends `Plan.md` (architecture/vision) with concrete, buildable detail: re
 | Decision | Recommendation | Why |
 |---|---|---|
 | Backend API | **FastAPI** (Python) | Async-native, typed via Pydantic, easy to grow into AI-heavy endpoints. |
-| Frontend | **Next.js (React) + Tailwind**, calling FastAPI over REST | No reason to change the dashboard layer; it just talks to a Python backend instead of having its own API routes. |
+| Frontend | **Vite + React 19 + TanStack Router**, Tailwind v4 + Radix/shadcn-style components, calling FastAPI over REST | Reuses the proven Saarthi-CV stack/design system directly (owned in-repo, no Lovable.dev dependency), rather than starting a Next.js app from zero polish. |
 | Queue / background jobs | **Celery + Redis** (broker + result backend), **Celery Beat** for cron-style jobs | Standard, mature Python task queue; Beat covers Sheets sync / bounce-check / warmup-tick cron needs. |
 | ORM / migrations | **SQLAlchemy 2.0 (async)** + **Alembic** | Idiomatic FastAPI pairing, full control over schema (needed for the custom rate-limit/rotation logic). |
 | Package manager | **uv** | Fast, modern, single lockfile. |
 | SMTP sending | **smtplib** (stdlib) inside Celery tasks | Celery tasks are sync by default; no need for async SMTP there. |
-| AI provider | **Claude API** via `anthropic` Python SDK | Direct fit now that backend is Python; same provider planned for future AI features. |
+| AI provider | **OpenAI API** via the `openai` Python SDK (chat completions, JSON mode) | User has an OpenAI key available; swapped from the originally planned Claude API. |
 | Auth | **FastAPI + JWT** (`python-jose`, `passlib[bcrypt]`) | Simple, no need for a heavier auth framework at this scale. |
 | Open/click tracking in V1 | **Defer to Phase 3.** | Tracking pixels/link-rewriting add spam-signal risk and complexity; V1 priority is deliverability. |
 | AI scope in V1 | **Variant generation only** (10-12 subject/body variants, human-approved). No per-recipient dynamic personalization yet. | Matches Plan.md §12; future AI (segmentation, send-time optimization, engagement prediction) is easier to bolt on later precisely because the backend is already Python. |
@@ -246,7 +246,7 @@ GET    /api/campaigns                  - list
 POST   /api/campaigns                  - create (draft)
 GET    /api/campaigns/{id}
 PATCH  /api/campaigns/{id}             - update fields/status
-POST   /api/campaigns/{id}/variants/generate   - call Claude to generate 10-12 variants
+POST   /api/campaigns/{id}/variants/generate   - call OpenAI to generate 10-12 variants
 PATCH  /api/campaigns/{id}/variants/{variant_id} - edit/approve a variant
 POST   /api/campaigns/{id}/schedule    - enqueue dispatch_campaign celery task
 POST   /api/campaigns/{id}/pause
@@ -309,8 +309,8 @@ def check_rate_limit(mailbox_id: str, per_minute_limit: int, daily_limit: int) -
 
 ## 7. AI variant generation
 
-- `services/ai_variants.py` calls `anthropic.Anthropic().messages.create(...)` with a prompt template.
-- Instructs Claude to: preserve all links/unsubscribe placeholders, vary subject/opening line, avoid spam-trigger words (checked against a static wordlist post-generation, server-side — not just prompt-level), keep length within ±20% of the original.
+- `services/ai_variants.py` calls `OpenAI().chat.completions.create(..., response_format={"type": "json_object"})` with a prompt template.
+- Instructs the model to: preserve all links/unsubscribe placeholders, vary subject/opening line, avoid spam-trigger words (checked against a static wordlist post-generation, server-side — not just prompt-level), keep length within ±20% of the original.
 - Output stored as `CampaignVariant` rows with `approved = False`; a human must review/edit and mark approved before `POST /campaigns/{id}/schedule` is allowed to proceed (enforced in the route handler, not just the UI).
 - Because this is already Python, future AI additions (subscriber segmentation, send-time optimization, engagement-based re-ranking) slot into the same `services/` layer without a new service or language boundary.
 
@@ -359,15 +359,16 @@ Auth: Next.js stores the JWT (httpOnly cookie set by FastAPI on login) and forwa
 
 Each milestone should be scoped, built, and verified end-to-end before starting the next — do not jump ahead.
 
-1. **DNS + mailbox provisioning** — SPF/DKIM/DMARC live for both domains, 2-3 mailboxes created, verified with a mail-tester.com score check.
-2. **Repo scaffold** — `uv`-managed FastAPI project, SQLAlchemy models above, Alembic initial migration, Postgres running locally via Docker.
-3. **CLI Sheets sync script** — standalone script (not yet wired to Celery): read one sheet, dedupe, upsert to DB. Verify against real sheet data.
+1. **DNS + mailbox provisioning** — SPF/DKIM/DMARC live for both domains, 2-3 mailboxes created, verified with a mail-tester.com score check. ⏸ Blocked on the user — nothing to do remotely here.
+2. **Repo scaffold** — `uv`-managed FastAPI project, SQLAlchemy models above, Alembic initial migration, Postgres running locally via Docker. ✅ Done.
+   - **Interim: Subscribers CRUD** (not a numbered milestone in the original plan) — manual add/list/delete with case-insensitive dedupe, done ahead of Sheets sync so the sending pipeline (milestones 4-6) has real test data without waiting on Google service-account setup. ✅ Done.
+3. **CLI Sheets sync script** — standalone script (not yet wired to Celery): read one sheet, dedupe, upsert to DB. Verify against real sheet data. Needs a Google service account — still pending.
 4. **CLI single-batch sender script** — standalone script: pick one mailbox, send one batch of ~5 test recipients via `smtplib`, confirm delivery + headers correct (SPF/DKIM pass, List-Unsubscribe present).
 5. **Rate limiter + mailbox rotation** — add the Redis token-bucket + rotation logic to the CLI sender, verify it throttles correctly under a simulated burst.
 6. **Celery worker wiring** — move the sender into a real `send_email` task on a `mailer` queue, add idempotency, verify retries don't double-send.
-7. **FastAPI + Next.js skeleton** — auth, mailboxes CRUD screen only, wired to the real DB through FastAPI.
-8. **Campaign builder (manual content, no AI yet)** — create campaign, paste one variant, schedule, watch it flow through Celery to real test recipients.
-9. **AI variant generation** — add the Claude-backed generate endpoint + approval gate, verify guardrails catch a deliberately spammy test prompt.
+7. **FastAPI + frontend skeleton** — auth, mailboxes CRUD screen only, wired to the real DB through FastAPI. ✅ Done.
+8. **Campaign builder (manual content, no AI yet)** — create campaign, add variants manually, approve. ✅ Done — scheduling/dispatch deferred to milestone 6 (Celery).
+9. **AI variant generation** — OpenAI-backed generate endpoint + approval gate, guardrails catch spam-trigger wording. ✅ Done.
 10. **Bounce processing** — IMAP bounce mailbox parsing, hard bounce suppression, verify against a deliberately bad test address.
 11. **Unsubscribe flow** — public endpoint + footer link, verify a real unsubscribe removes the address from future sends.
 12. **Dashboard analytics/logs screen** — surfaces `SendEvent`/bounce/unsub counts already being recorded.
