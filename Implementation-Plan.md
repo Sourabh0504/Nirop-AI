@@ -372,7 +372,31 @@ Each milestone should be scoped, built, and verified end-to-end before starting 
 12. **Dashboard analytics/logs screen** — `GET /api/logs` + `GET /api/campaigns/{id}/stats` power a real Logs page and live campaign stats. ✅ Done.
 13. **Warmup automation** — `warmup_tick` task, verify stage advancement logic on a mock mailbox with adjustable "days active." Meaningful once milestone 1's real mailboxes exist to warm up.
 
-Phase 3 items (open/click tracking, advanced segmentation, re-engagement, and any further AI features) are deliberately out of this build order — revisit only after V1 is sending reliably.
+Phase 3 items (advanced segmentation, re-engagement, and further AI features) are deliberately out of this build order — revisit only after V1 is sending reliably. Open/click tracking has been pulled forward into Phase 4 below, since it's the data foundation everything else in that phase depends on.
+
+---
+
+## 12.5. Phase 4 — Intelligence & analytics layer
+
+V1 is a mailer. Phase 4 turns it into a system that gets measurably better with every campaign — a closed loop, not just AI-assisted drafting. Ordered so each step only depends on data the previous step already produces.
+
+1. **Unsubscribe flow** (=milestone 11) — public, token-verified endpoint; footer link added to every send.
+2. **Click tracking** — every link in a sent email is rewritten to `/r/{tracked_link_id}`, which logs a `ClickEvent` and 302-redirects to the real URL (with UTM params appended). Reliable signal — build this first.
+3. **Open tracking** — 1x1 tracking pixel logs `OpenEvent`. Directionally useful but not fully trustworthy (Apple MPP pre-fetches ~50% of opens as false positives; image-blocking clients under-count) — always presented as a *relative* signal for comparing variants, never as an absolute deliverability number.
+4. **Conversion tracking** — UTM params on every link + a lightweight ping endpoint JobSociety/TestingSociety can call when a tagged visitor applies to a job, closing the sent → delivered → opened → clicked → converted funnel.
+5. **Funnel dashboard** — per-campaign and per-variant sent/opened/clicked/converted counts and rates, surfaced on the campaign detail page.
+6. **Deliverability circuit breaker** — mid-campaign, if bounce or unsubscribe rate crosses a threshold, auto-pause remaining sends and alert. Directly protects domain reputation (the plan's stated #1 priority) — ranks above the fancier AI features below.
+7. **Multi-armed bandit variant allocation** — Thompson sampling over live CTR: send a small exploration slice across all approved variants, then shift remaining sends toward whichever are winning. Pure math on data already being collected, no new ML infra.
+8. **Engagement scoring + auto-sunset** — score subscribers by recency/frequency of opens/clicks; stop sending to dead addresses automatically, route fading ones to a re-engagement track.
+9. **Performance memory for AI generation** — every past variant's subject/CTR/unsub-rate feeds back into the `ai_variants.py` prompt as few-shot examples ("these got 8%+ CTR, these got ignored"), so generation compounds instead of starting cold each time.
+10. **AI campaign retrospectives** — after a campaign completes, GPT receives its full stats table and produces a structured write-up (what won, why, concrete recommendations for the next campaign), stored and fed into future generation.
+11. **Per-segment generation** — cluster subscribers by tags/engagement, generate distinct variant sets per segment instead of one-size-fits-all.
+12. **Send-time optimization** — learn each subscriber's historical open-hour pattern, schedule their send accordingly.
+13. **Reply intelligence** — parse replies to the sending mailbox for plain-text unsubscribe requests / complaints, suppress immediately (missing these is a spam-complaint risk).
+14. **Natural-language campaign creation** — "send this week's top 10 QA jobs to everyone who clicked in the last 30 days" → an agent builds the audience query and drafts content from the site's own job feed. Since JobSociety/TestingSociety already are job feeds, auto-curated personalized content is the strongest long-term differentiator here.
+15. **Reputation monitoring** — DMARC aggregate report + Google Postmaster Tools ingestion for a domain-health panel.
+
+New schema for this phase: `tracked_links` (send_event_id, original_url), `click_events` (tracked_link_id, clicked_at), `open_events` (send_event_id, opened_at). No changes needed to existing tables.
 
 ---
 
