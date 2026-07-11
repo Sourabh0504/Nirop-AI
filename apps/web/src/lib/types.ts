@@ -79,3 +79,32 @@ export interface VariantGenerateResult {
   variants: CampaignVariant[];
   flagged_count: number;
 }
+
+export type SubscriberStatus = "active" | "unsubscribed" | "bounced" | "suppressed";
+
+export interface Subscriber {
+  id: string;
+  email: string;
+  first_name: string | null;
+  last_name: string | null;
+  source_site: string;
+  tags: string[];
+  status: SubscriberStatus;
+  created_at: string;
+}
+
+export interface SubscriberCreateInput {
+  email: string;
+  first_name?: string;
+  last_name?: string;
+  source_site: string;
+  tags: string[];
+}
+
+export interface DedupeReport {
+  total: number;
+  active: number;
+  unsubscribed: number;
+  bounced: number;
+  suppressed: number;
+}
