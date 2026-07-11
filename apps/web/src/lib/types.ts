@@ -126,4 +126,8 @@ export interface CampaignStats {
   sent: number;
   failed: number;
   retrying: number;
+  opened: number;
+  clicked: number;
+  open_rate: number;
+  click_rate: number;
 }

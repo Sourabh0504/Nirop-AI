@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, computed_field
 
 from app.models.models import SendStatus
 
@@ -22,3 +22,15 @@ class CampaignStats(BaseModel):
     sent: int
     failed: int
     retrying: int
+    opened: int
+    clicked: int
+
+    @computed_field
+    @property
+    def open_rate(self) -> float:
+        return round(self.opened / self.sent, 4) if self.sent else 0.0
+
+    @computed_field
+    @property
+    def click_rate(self) -> float:
+        return round(self.clicked / self.sent, 4) if self.sent else 0.0

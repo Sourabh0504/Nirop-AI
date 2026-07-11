@@ -8,11 +8,14 @@ from app.models.models import (
     Campaign,
     CampaignStatus,
     CampaignVariant,
+    ClickEvent,
+    OpenEvent,
     SendBatch,
     SendEvent,
     SendStatus,
     Subscriber,
     SubscriberStatus,
+    TrackedLink,
 )
 from app.schemas.campaign import (
     CampaignCreate,
@@ -70,11 +73,29 @@ async def get_campaign_stats(campaign_id: str, db: DbSession, _current_user: Cur
         .group_by(SendEvent.status)
     )
     counts = {status_value: count for status_value, count in rows.all()}
+
+    opened = await db.scalar(
+        select(func.count(func.distinct(OpenEvent.send_event_id)))
+        .join(SendEvent, OpenEvent.send_event_id == SendEvent.id)
+        .join(SendBatch, SendEvent.batch_id == SendBatch.id)
+        .where(SendBatch.campaign_id == campaign_id)
+    )
+    clicked = await db.scalar(
+        select(func.count(func.distinct(TrackedLink.send_event_id)))
+        .select_from(ClickEvent)
+        .join(TrackedLink, ClickEvent.tracked_link_id == TrackedLink.id)
+        .join(SendEvent, TrackedLink.send_event_id == SendEvent.id)
+        .join(SendBatch, SendEvent.batch_id == SendBatch.id)
+        .where(SendBatch.campaign_id == campaign_id)
+    )
+
     return CampaignStats(
         queued=counts.get(SendStatus.QUEUED, 0),
         sent=counts.get(SendStatus.SENT, 0),
         failed=counts.get(SendStatus.FAILED, 0),
         retrying=counts.get(SendStatus.RETRYING, 0),
+        opened=opened or 0,
+        clicked=clicked or 0,
     )
 
 

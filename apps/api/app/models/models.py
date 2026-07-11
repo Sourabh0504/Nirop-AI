@@ -172,3 +172,28 @@ class BounceEvent(Base):
     reason: Mapped[str | None]
     raw_payload: Mapped[str | None]
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+
+
+class TrackedLink(Base):
+    __tablename__ = "tracked_links"
+
+    id: Mapped[str] = mapped_column(primary_key=True, default=generate_id)
+    send_event_id: Mapped[str] = mapped_column(ForeignKey("send_events.id"))
+    original_url: Mapped[str]
+    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+
+
+class ClickEvent(Base):
+    __tablename__ = "click_events"
+
+    id: Mapped[str] = mapped_column(primary_key=True, default=generate_id)
+    tracked_link_id: Mapped[str] = mapped_column(ForeignKey("tracked_links.id"))
+    clicked_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+
+
+class OpenEvent(Base):
+    __tablename__ = "open_events"
+
+    id: Mapped[str] = mapped_column(primary_key=True, default=generate_id)
+    send_event_id: Mapped[str] = mapped_column(ForeignKey("send_events.id"))
+    opened_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)

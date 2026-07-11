@@ -18,6 +18,8 @@ from app.models.models import (
 from app.services.mailbox_rotation import bump_usage, pick_mailbox
 from app.services.mailer import send_email_smtp
 from app.services.rate_limiter import DailyLimitReachedError, RateLimitedError, check_and_increment
+from app.services.tracking import apply_click_tracking, open_pixel_tag
+from app.services.unsubscribe import build_unsubscribe_url
 
 
 @celery_app.task(name="dispatch_campaign")
@@ -106,6 +108,14 @@ async def _send_email(send_event_id: str) -> dict:
         variant = await db.get(CampaignVariant, batch.variant_id)
         subscriber = await db.get(Subscriber, event.subscriber_id)
 
+        if subscriber.status != SubscriberStatus.ACTIVE:
+            # Caught between dispatch and send (e.g. they unsubscribed via a link in an
+            # earlier campaign while this one was queued/retrying).
+            event.status = SendStatus.FAILED
+            event.error = f"Subscriber no longer active ({subscriber.status.value})"
+            await db.commit()
+            return {"error": "subscriber not active"}
+
         mailbox = await pick_mailbox(db)
         if mailbox is None:
             event.status = SendStatus.FAILED
@@ -117,8 +127,20 @@ async def _send_email(send_event_id: str) -> dict:
         # which converts it into a Celery retry — must happen before the SMTP call.
         check_and_increment(mailbox.id, mailbox.daily_limit)
 
+        unsubscribe_url = build_unsubscribe_url(subscriber.id)
+        tracked_html = await apply_click_tracking(db, event.id, variant.html_body)
+        final_html = (
+            f"{tracked_html}"
+            f'<p style="font-size:12px;color:#888;margin-top:24px;">'
+            f'<a href="{unsubscribe_url}">Unsubscribe</a></p>'
+            f"{open_pixel_tag(event.id)}"
+        )
+        final_text = f"{variant.text_body}\n\nUnsubscribe: {unsubscribe_url}"
+
         try:
-            send_email_smtp(mailbox, subscriber.email, variant.subject, variant.html_body, variant.text_body)
+            send_email_smtp(
+                mailbox, subscriber.email, variant.subject, final_html, final_text, unsubscribe_url
+            )
         except Exception as exc:  # noqa: BLE001 - any SMTP failure marks this event failed
             event.status = SendStatus.FAILED
             event.error = str(exc)

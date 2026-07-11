@@ -317,23 +317,46 @@ function CampaignDetail() {
       </div>
 
       {stats && stats.queued + stats.sent + stats.failed + stats.retrying > 0 && (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <Card>
-            <CardHeader><CardTitle>Queued</CardTitle></CardHeader>
-            <CardContent><CardValue>{stats.queued}</CardValue></CardContent>
-          </Card>
-          <Card>
-            <CardHeader><CardTitle>Sent</CardTitle></CardHeader>
-            <CardContent><CardValue className="text-success">{stats.sent}</CardValue></CardContent>
-          </Card>
-          <Card>
-            <CardHeader><CardTitle>Failed</CardTitle></CardHeader>
-            <CardContent><CardValue className="text-destructive">{stats.failed}</CardValue></CardContent>
-          </Card>
-          <Card>
-            <CardHeader><CardTitle>Retrying</CardTitle></CardHeader>
-            <CardContent><CardValue>{stats.retrying}</CardValue></CardContent>
-          </Card>
+        <div className="flex flex-col gap-4">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <Card>
+              <CardHeader><CardTitle>Queued</CardTitle></CardHeader>
+              <CardContent><CardValue>{stats.queued}</CardValue></CardContent>
+            </Card>
+            <Card>
+              <CardHeader><CardTitle>Sent</CardTitle></CardHeader>
+              <CardContent><CardValue className="text-success">{stats.sent}</CardValue></CardContent>
+            </Card>
+            <Card>
+              <CardHeader><CardTitle>Failed</CardTitle></CardHeader>
+              <CardContent><CardValue className="text-destructive">{stats.failed}</CardValue></CardContent>
+            </Card>
+            <Card>
+              <CardHeader><CardTitle>Retrying</CardTitle></CardHeader>
+              <CardContent><CardValue>{stats.retrying}</CardValue></CardContent>
+            </Card>
+          </div>
+
+          {stats.sent > 0 && (
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <Card>
+                <CardHeader><CardTitle>Opened</CardTitle></CardHeader>
+                <CardContent><CardValue>{stats.opened}</CardValue></CardContent>
+              </Card>
+              <Card>
+                <CardHeader><CardTitle>Open rate</CardTitle></CardHeader>
+                <CardContent><CardValue>{(stats.open_rate * 100).toFixed(0)}%</CardValue></CardContent>
+              </Card>
+              <Card>
+                <CardHeader><CardTitle>Clicked</CardTitle></CardHeader>
+                <CardContent><CardValue>{stats.clicked}</CardValue></CardContent>
+              </Card>
+              <Card>
+                <CardHeader><CardTitle>Click rate (CTR)</CardTitle></CardHeader>
+                <CardContent><CardValue>{(stats.click_rate * 100).toFixed(0)}%</CardValue></CardContent>
+              </Card>
+            </div>
+          )}
         </div>
       )}
 

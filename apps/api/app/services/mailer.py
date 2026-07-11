@@ -6,12 +6,22 @@ from app.core.security import decrypt_secret
 from app.models.models import Mailbox
 
 
-def send_email_smtp(mailbox: Mailbox, to_email: str, subject: str, html_body: str, text_body: str) -> None:
+def send_email_smtp(
+    mailbox: Mailbox,
+    to_email: str,
+    subject: str,
+    html_body: str,
+    text_body: str,
+    unsubscribe_url: str,
+) -> None:
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
     msg["From"] = f"{mailbox.from_name} <{mailbox.from_email}>"
     msg["To"] = to_email
-    msg["List-Unsubscribe"] = "<mailto:unsubscribe@nirop.ai?subject=unsubscribe>"
+    # RFC 8058 one-click unsubscribe: mail clients (Gmail, Yahoo, etc.) show a native
+    # "Unsubscribe" button that POSTs here directly, no page load required.
+    msg["List-Unsubscribe"] = f"<{unsubscribe_url}>"
+    msg["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click"
     msg.attach(MIMEText(text_body, "plain"))
     msg.attach(MIMEText(html_body, "html"))
 

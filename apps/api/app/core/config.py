@@ -12,6 +12,10 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://mailai:mailai@localhost:5432/mailai"
     redis_url: str = "redis://localhost:6379/0"
 
+    # Base URL used to build absolute tracking/unsubscribe links inside outgoing emails —
+    # these are followed from the recipient's mail client, not the frontend dev server.
+    public_url: str = "http://localhost:8010"
+
     jwt_secret: str = "change-me"
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60 * 24
