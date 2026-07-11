@@ -363,16 +363,14 @@ Each milestone should be scoped, built, and verified end-to-end before starting 
 2. **Repo scaffold** — `uv`-managed FastAPI project, SQLAlchemy models above, Alembic initial migration, Postgres running locally via Docker. ✅ Done.
    - **Interim: Subscribers CRUD** (not a numbered milestone in the original plan) — manual add/list/delete with case-insensitive dedupe, done ahead of Sheets sync so the sending pipeline (milestones 4-6) has real test data without waiting on Google service-account setup. ✅ Done.
 3. **CLI Sheets sync script** — standalone script (not yet wired to Celery): read one sheet, dedupe, upsert to DB. Verify against real sheet data. Needs a Google service account — still pending.
-4. **CLI single-batch sender script** — standalone script: pick one mailbox, send one batch of ~5 test recipients via `smtplib`, confirm delivery + headers correct (SPF/DKIM pass, List-Unsubscribe present).
-5. **Rate limiter + mailbox rotation** — add the Redis token-bucket + rotation logic to the CLI sender, verify it throttles correctly under a simulated burst.
-6. **Celery worker wiring** — move the sender into a real `send_email` task on a `mailer` queue, add idempotency, verify retries don't double-send.
+4-6. **Sender + rate limiter + mailbox rotation + Celery worker wiring** — merged into one delivery: `services/rate_limiter.py` (Redis token-bucket, per-minute + daily), `services/mailbox_rotation.py` (lowest-usage-ratio pick + `MailboxUsageDaily` tracking), `services/mailer.py` (smtplib), `workers/tasks.py` (`dispatch_campaign` + idempotent `send_email` with Celery retries), `POST /campaigns/{id}/send`. Verified end-to-end against a local **Mailpit** SMTP catcher (real Hostinger mailboxes still pending on milestone 1) — dispatch → rate limit → rotation → SMTP send → delivery all confirmed via Mailpit's API. ✅ Done (against test SMTP; swap to real mailboxes once milestone 1 lands).
 7. **FastAPI + frontend skeleton** — auth, mailboxes CRUD screen only, wired to the real DB through FastAPI. ✅ Done.
-8. **Campaign builder (manual content, no AI yet)** — create campaign, add variants manually, approve. ✅ Done — scheduling/dispatch deferred to milestone 6 (Celery).
+8. **Campaign builder (manual content, no AI yet)** — create campaign, add variants manually, approve, send. ✅ Done, including send (originally deferred to milestone 6, now that it exists).
 9. **AI variant generation** — OpenAI-backed generate endpoint + approval gate, guardrails catch spam-trigger wording. ✅ Done.
-10. **Bounce processing** — IMAP bounce mailbox parsing, hard bounce suppression, verify against a deliberately bad test address.
+10. **Bounce processing** — IMAP bounce mailbox parsing, hard bounce suppression, verify against a deliberately bad test address. Needs a real bounce mailbox — pending milestone 1.
 11. **Unsubscribe flow** — public endpoint + footer link, verify a real unsubscribe removes the address from future sends.
-12. **Dashboard analytics/logs screen** — surfaces `SendEvent`/bounce/unsub counts already being recorded.
-13. **Warmup automation** — `warmup_tick` task, verify stage advancement logic on a mock mailbox with adjustable "days active."
+12. **Dashboard analytics/logs screen** — `GET /api/logs` + `GET /api/campaigns/{id}/stats` power a real Logs page and live campaign stats. ✅ Done.
+13. **Warmup automation** — `warmup_tick` task, verify stage advancement logic on a mock mailbox with adjustable "days active." Meaningful once milestone 1's real mailboxes exist to warm up.
 
 Phase 3 items (open/click tracking, advanced segmentation, re-engagement, and any further AI features) are deliberately out of this build order — revisit only after V1 is sending reliably.
 
