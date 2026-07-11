@@ -380,11 +380,11 @@ Phase 3 items (advanced segmentation, re-engagement, and further AI features) ar
 
 V1 is a mailer. Phase 4 turns it into a system that gets measurably better with every campaign — a closed loop, not just AI-assisted drafting. Ordered so each step only depends on data the previous step already produces.
 
-1. **Unsubscribe flow** (=milestone 11) — public, token-verified endpoint; footer link added to every send.
-2. **Click tracking** — every link in a sent email is rewritten to `/r/{tracked_link_id}`, which logs a `ClickEvent` and 302-redirects to the real URL (with UTM params appended). Reliable signal — build this first.
-3. **Open tracking** — 1x1 tracking pixel logs `OpenEvent`. Directionally useful but not fully trustworthy (Apple MPP pre-fetches ~50% of opens as false positives; image-blocking clients under-count) — always presented as a *relative* signal for comparing variants, never as an absolute deliverability number.
-4. **Conversion tracking** — UTM params on every link + a lightweight ping endpoint JobSociety/TestingSociety can call when a tagged visitor applies to a job, closing the sent → delivered → opened → clicked → converted funnel.
-5. **Funnel dashboard** — per-campaign and per-variant sent/opened/clicked/converted counts and rates, surfaced on the campaign detail page.
+1. **Unsubscribe flow** (=milestone 11) — public, token-verified endpoint; footer link added to every send. ✅ Done — HMAC-verified GET/POST `/unsubscribe`, RFC 8058 one-click headers, plain-text fallback link.
+2. **Click tracking** — every link in a sent email is rewritten to `/r/{tracked_link_id}`, which logs a `ClickEvent` and 302-redirects to the real URL. ✅ Done — UTM params on the redirect target not yet added (see step 4).
+3. **Open tracking** — 1x1 tracking pixel logs `OpenEvent`. Directionally useful but not fully trustworthy (Apple MPP pre-fetches ~50% of opens as false positives; image-blocking clients under-count) — always presented as a *relative* signal for comparing variants, never as an absolute deliverability number. ✅ Done.
+4. **Conversion tracking** — UTM params on every link + a lightweight ping endpoint JobSociety/TestingSociety can call when a tagged visitor applies to a job, closing the sent → delivered → opened → clicked → converted funnel. Not started — needs the target sites' cooperation to call the ping endpoint.
+5. **Funnel dashboard** — per-campaign sent/opened/clicked counts and rates. ✅ Done (per-campaign; per-variant breakdown not yet split out — needed for step 7's bandit).
 6. **Deliverability circuit breaker** — mid-campaign, if bounce or unsubscribe rate crosses a threshold, auto-pause remaining sends and alert. Directly protects domain reputation (the plan's stated #1 priority) — ranks above the fancier AI features below.
 7. **Multi-armed bandit variant allocation** — Thompson sampling over live CTR: send a small exploration slice across all approved variants, then shift remaining sends toward whichever are winning. Pure math on data already being collected, no new ML infra.
 8. **Engagement scoring + auto-sunset** — score subscribers by recency/frequency of opens/clicks; stop sending to dead addresses automatically, route fading ones to a re-engagement track.
