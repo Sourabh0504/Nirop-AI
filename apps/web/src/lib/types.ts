@@ -29,3 +29,41 @@ export interface MailboxCreateInput {
   smtp_password: string;
   daily_limit: number;
 }
+
+export type CampaignStatus = "draft" | "content" | "scheduled" | "active" | "paused" | "completed";
+
+export interface Campaign {
+  id: string;
+  name: string;
+  site: string;
+  status: CampaignStatus;
+  batch_size: number;
+  scheduled_at: string | null;
+  created_by: string;
+  created_at: string;
+}
+
+export interface CampaignVariant {
+  id: string;
+  campaign_id: string;
+  variant_index: number;
+  subject: string;
+  html_body: string;
+  text_body: string;
+  approved: boolean;
+}
+
+export interface CampaignDetail extends Campaign {
+  variants: CampaignVariant[];
+}
+
+export interface CampaignCreateInput {
+  name: string;
+  site: string;
+}
+
+export interface VariantCreateInput {
+  subject: string;
+  html_body: string;
+  text_body: string;
+}

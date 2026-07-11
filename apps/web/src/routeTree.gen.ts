@@ -15,7 +15,8 @@ import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppSubscribersRouteImport } from './routes/_app/subscribers'
 import { Route as AppMailboxesRouteImport } from './routes/_app/mailboxes'
 import { Route as AppLogsRouteImport } from './routes/_app/logs'
-import { Route as AppCampaignsRouteImport } from './routes/_app/campaigns'
+import { Route as AppCampaignsIndexRouteImport } from './routes/_app/campaigns/index'
+import { Route as AppCampaignsCampaignIdRouteImport } from './routes/_app/campaigns/$campaignId'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -46,53 +47,75 @@ const AppLogsRoute = AppLogsRouteImport.update({
   path: '/logs',
   getParentRoute: () => AppRoute,
 } as any)
-const AppCampaignsRoute = AppCampaignsRouteImport.update({
-  id: '/campaigns',
-  path: '/campaigns',
+const AppCampaignsIndexRoute = AppCampaignsIndexRouteImport.update({
+  id: '/campaigns/',
+  path: '/campaigns/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCampaignsCampaignIdRoute = AppCampaignsCampaignIdRouteImport.update({
+  id: '/campaigns/$campaignId',
+  path: '/campaigns/$campaignId',
   getParentRoute: () => AppRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/login': typeof LoginRoute
-  '/campaigns': typeof AppCampaignsRoute
   '/logs': typeof AppLogsRoute
   '/mailboxes': typeof AppMailboxesRoute
   '/subscribers': typeof AppSubscribersRoute
+  '/campaigns/$campaignId': typeof AppCampaignsCampaignIdRoute
+  '/campaigns/': typeof AppCampaignsIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
-  '/campaigns': typeof AppCampaignsRoute
   '/logs': typeof AppLogsRoute
   '/mailboxes': typeof AppMailboxesRoute
   '/subscribers': typeof AppSubscribersRoute
   '/': typeof AppIndexRoute
+  '/campaigns/$campaignId': typeof AppCampaignsCampaignIdRoute
+  '/campaigns': typeof AppCampaignsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
-  '/_app/campaigns': typeof AppCampaignsRoute
   '/_app/logs': typeof AppLogsRoute
   '/_app/mailboxes': typeof AppMailboxesRoute
   '/_app/subscribers': typeof AppSubscribersRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/campaigns/$campaignId': typeof AppCampaignsCampaignIdRoute
+  '/_app/campaigns/': typeof AppCampaignsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/login' | '/campaigns' | '/logs' | '/mailboxes' | '/subscribers'
+    | '/'
+    | '/login'
+    | '/logs'
+    | '/mailboxes'
+    | '/subscribers'
+    | '/campaigns/$campaignId'
+    | '/campaigns/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/campaigns' | '/logs' | '/mailboxes' | '/subscribers' | '/'
+  to:
+    | '/login'
+    | '/logs'
+    | '/mailboxes'
+    | '/subscribers'
+    | '/'
+    | '/campaigns/$campaignId'
+    | '/campaigns'
   id:
     | '__root__'
     | '/_app'
     | '/login'
-    | '/_app/campaigns'
     | '/_app/logs'
     | '/_app/mailboxes'
     | '/_app/subscribers'
     | '/_app/'
+    | '/_app/campaigns/$campaignId'
+    | '/_app/campaigns/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -144,30 +167,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppLogsRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/campaigns': {
-      id: '/_app/campaigns'
+    '/_app/campaigns/': {
+      id: '/_app/campaigns/'
       path: '/campaigns'
-      fullPath: '/campaigns'
-      preLoaderRoute: typeof AppCampaignsRouteImport
+      fullPath: '/campaigns/'
+      preLoaderRoute: typeof AppCampaignsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/campaigns/$campaignId': {
+      id: '/_app/campaigns/$campaignId'
+      path: '/campaigns/$campaignId'
+      fullPath: '/campaigns/$campaignId'
+      preLoaderRoute: typeof AppCampaignsCampaignIdRouteImport
       parentRoute: typeof AppRoute
     }
   }
 }
 
 interface AppRouteChildren {
-  AppCampaignsRoute: typeof AppCampaignsRoute
   AppLogsRoute: typeof AppLogsRoute
   AppMailboxesRoute: typeof AppMailboxesRoute
   AppSubscribersRoute: typeof AppSubscribersRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppCampaignsCampaignIdRoute: typeof AppCampaignsCampaignIdRoute
+  AppCampaignsIndexRoute: typeof AppCampaignsIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
-  AppCampaignsRoute: AppCampaignsRoute,
   AppLogsRoute: AppLogsRoute,
   AppMailboxesRoute: AppMailboxesRoute,
   AppSubscribersRoute: AppSubscribersRoute,
   AppIndexRoute: AppIndexRoute,
+  AppCampaignsCampaignIdRoute: AppCampaignsCampaignIdRoute,
+  AppCampaignsIndexRoute: AppCampaignsIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
