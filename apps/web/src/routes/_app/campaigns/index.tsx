@@ -21,6 +21,8 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Card, CardContent, CardHeader, CardTitle, CardValue } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useCampaigns, useCreateCampaign } from "@/hooks/use-campaigns";
 import { ApiError } from "@/lib/api";
 import type { CampaignStatus } from "@/lib/types";
@@ -112,7 +114,10 @@ function Campaigns() {
       />
 
       {isPending ? (
-        <div className="text-muted-foreground text-sm">Loading campaigns…</div>
+        <div className="flex flex-col gap-3">
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-48 w-full" />
+        </div>
       ) : !campaigns || campaigns.length === 0 ? (
         <EmptyState
           icon={Send}
@@ -122,36 +127,63 @@ function Campaigns() {
           onAction={() => setOpen(true)}
         />
       ) : (
-        <div className="border-border/70 rounded-xl border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="pl-5">Campaign</TableHead>
-                <TableHead>Site</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="pr-5">Created</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {campaigns.map((c) => (
-                <TableRow key={c.id} className="cursor-pointer">
-                  <TableCell className="pl-5 font-medium">
-                    <Link to="/campaigns/$campaignId" params={{ campaignId: c.id }} className="hover:underline">
-                      {c.name}
-                    </Link>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{c.site}</TableCell>
-                  <TableCell>
-                    <Badge variant={statusVariant[c.status]}>{c.status}</Badge>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground pr-5">
-                    {new Date(c.created_at).toLocaleDateString()}
-                  </TableCell>
+        <>
+          <div className="grid grid-cols-3 gap-4">
+            <Card>
+              <CardHeader><CardTitle>Total</CardTitle></CardHeader>
+              <CardContent><CardValue>{campaigns.length}</CardValue></CardContent>
+            </Card>
+            <Card>
+              <CardHeader><CardTitle>Active / scheduled</CardTitle></CardHeader>
+              <CardContent>
+                <CardValue className="text-success">
+                  {campaigns.filter((c) => c.status === "active" || c.status === "scheduled").length}
+                </CardValue>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader><CardTitle>Draft</CardTitle></CardHeader>
+              <CardContent>
+                <CardValue>{campaigns.filter((c) => c.status === "draft" || c.status === "content").length}</CardValue>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="surface-elevated bg-card border-border/60 rounded-xl border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="rounded-tl-xl pl-5">Campaign</TableHead>
+                  <TableHead>Site</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="rounded-tr-xl pr-5">Created</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+              </TableHeader>
+              <TableBody>
+                {campaigns.map((c) => (
+                  <TableRow key={c.id} className="cursor-pointer">
+                    <TableCell className="pl-5 font-medium">
+                      <Link
+                        to="/campaigns/$campaignId"
+                        params={{ campaignId: c.id }}
+                        className="hover:text-primary transition-colors"
+                      >
+                        {c.name}
+                      </Link>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{c.site}</TableCell>
+                    <TableCell>
+                      <Badge variant={statusVariant[c.status]}>{c.status}</Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground pr-5">
+                      {new Date(c.created_at).toLocaleDateString()}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </>
       )}
     </div>
   );

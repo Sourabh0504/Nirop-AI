@@ -22,6 +22,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useSubscribers, useCreateSubscriber, useDeleteSubscriber, useDedupeReport } from "@/hooks/use-subscribers";
 import { ApiError } from "@/lib/api";
 import type { SubscriberStatus } from "@/lib/types";
@@ -174,7 +175,7 @@ function Subscribers() {
       )}
 
       {isPending ? (
-        <div className="text-muted-foreground text-sm">Loading subscribers…</div>
+        <Skeleton className="h-48 w-full" />
       ) : !subscribers || subscribers.length === 0 ? (
         <EmptyState
           icon={Users}
@@ -184,21 +185,28 @@ function Subscribers() {
           onAction={() => setOpen(true)}
         />
       ) : (
-        <div className="border-border/70 rounded-xl border">
+        <div className="surface-elevated bg-card border-border/60 rounded-xl border">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="pl-5">Email</TableHead>
+                <TableHead className="rounded-tl-xl pl-5">Email</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Site</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="w-12 pr-5" />
+                <TableHead className="w-12 rounded-tr-xl pr-5" />
               </TableRow>
             </TableHeader>
             <TableBody>
               {subscribers.map((s) => (
                 <TableRow key={s.id}>
-                  <TableCell className="pl-5 font-medium">{s.email}</TableCell>
+                  <TableCell className="pl-5 font-medium">
+                    <div className="flex items-center gap-2.5">
+                      <span className="bg-primary/10 text-primary flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold">
+                        {s.email[0].toUpperCase()}
+                      </span>
+                      {s.email}
+                    </div>
+                  </TableCell>
                   <TableCell className="text-muted-foreground">
                     {[s.first_name, s.last_name].filter(Boolean).join(" ") || "—"}
                   </TableCell>

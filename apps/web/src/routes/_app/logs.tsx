@@ -3,6 +3,7 @@ import { ScrollText } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { EmptyState } from "@/components/layout/empty-state";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useLogs } from "@/hooks/use-logs";
 import type { SendEventStatus } from "@/lib/types";
@@ -26,7 +27,7 @@ function Logs() {
       <PageHeader title="Logs" description="Send events across all campaigns, refreshed every 10s." />
 
       {isPending ? (
-        <div className="text-muted-foreground text-sm">Loading logs…</div>
+        <Skeleton className="h-48 w-full" />
       ) : !events || events.length === 0 ? (
         <EmptyState
           icon={ScrollText}
@@ -34,15 +35,15 @@ function Logs() {
           description="Once a campaign is scheduled and sending, delivery events will show up here."
         />
       ) : (
-        <div className="border-border/70 rounded-xl border">
+        <div className="surface-elevated bg-card border-border/60 rounded-xl border">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="pl-5">Campaign</TableHead>
+                <TableHead className="rounded-tl-xl pl-5">Campaign</TableHead>
                 <TableHead>Recipient</TableHead>
                 <TableHead>Mailbox</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="pr-5">Time</TableHead>
+                <TableHead className="rounded-tr-xl pr-5">Time</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

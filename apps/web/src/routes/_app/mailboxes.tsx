@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -170,7 +170,7 @@ function Mailboxes() {
       />
 
       {isPending ? (
-        <div className="text-muted-foreground text-sm">Loading mailboxes…</div>
+        <Skeleton className="h-48 w-full" />
       ) : !mailboxes || mailboxes.length === 0 ? (
         <EmptyState
           icon={MailboxIcon}
@@ -180,34 +180,38 @@ function Mailboxes() {
           onAction={() => setOpen(true)}
         />
       ) : (
-        <div className="border-border/70 rounded-xl border">
+        <div className="surface-elevated bg-card border-border/60 rounded-xl border">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="pl-5">Mailbox</TableHead>
+                <TableHead className="rounded-tl-xl pl-5">Mailbox</TableHead>
                 <TableHead>SMTP host</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Daily quota</TableHead>
-                <TableHead className="w-12 pr-5" />
+                <TableHead className="w-12 rounded-tr-xl pr-5" />
               </TableRow>
             </TableHeader>
             <TableBody>
               {mailboxes.map((mb) => (
                 <TableRow key={mb.id}>
                   <TableCell className="pl-5">
-                    <div className="font-medium">{mb.label}</div>
-                    <div className="text-muted-foreground text-xs">{mb.from_email}</div>
+                    <div className="flex items-center gap-2.5">
+                      <span className="bg-primary/10 text-primary flex size-8 shrink-0 items-center justify-center rounded-lg">
+                        <MailboxIcon className="size-4" />
+                      </span>
+                      <div>
+                        <div className="font-medium">{mb.label}</div>
+                        <div className="text-muted-foreground text-xs">{mb.from_email}</div>
+                      </div>
+                    </div>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">
+                  <TableCell className="text-muted-foreground font-mono text-xs">
                     {mb.smtp_host}:{mb.smtp_port}
                   </TableCell>
                   <TableCell>
                     <Badge variant={statusVariant[mb.status]}>{mb.status}</Badge>
                   </TableCell>
-                  <TableCell className="w-40">
-                    <Progress value={0} className="mb-1" />
-                    <span className="text-muted-foreground text-xs">0 / {mb.daily_limit} today</span>
-                  </TableCell>
+                  <TableCell className="text-muted-foreground">up to {mb.daily_limit}/day</TableCell>
                   <TableCell className="pr-5">
                     <Button
                       variant="ghost"

@@ -21,9 +21,15 @@ export function Sidebar() {
 
   return (
     <aside className="bg-sidebar text-sidebar-foreground border-sidebar-border hidden w-60 shrink-0 flex-col border-r md:flex">
-      <div className="flex h-14 items-center gap-2 px-5">
-        <div className="bg-sidebar-primary font-display flex size-7 items-center justify-center rounded-lg text-[15px] font-bold text-white">
-          N
+      <div className="relative flex h-16 items-center gap-2.5 px-5">
+        <div className="relative">
+          <div
+            className="bg-sidebar-primary absolute inset-0 rounded-lg opacity-50 blur-md"
+            aria-hidden="true"
+          />
+          <div className="bg-sidebar-primary font-display relative flex size-8 items-center justify-center rounded-lg text-base font-bold text-white shadow-lg">
+            N
+          </div>
         </div>
         <span className="font-display text-[15px] font-semibold tracking-tight">Nirop AI</span>
       </div>
@@ -36,16 +42,16 @@ export function Sidebar() {
               key={to}
               to={to}
               className={cn(
-                "relative flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors active:scale-[0.98]",
+                "relative flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-all active:scale-[0.98]",
                 active
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
+                  : "text-sidebar-foreground/65 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground",
               )}
             >
               {active && (
                 <span className="bg-sidebar-primary absolute top-1/2 -left-3 h-4 w-0.5 -translate-y-1/2 rounded-full" />
               )}
-              <Icon className="size-4" />
+              <Icon className={cn("size-4", active && "text-sidebar-primary")} />
               {label}
             </Link>
           );
