@@ -3,7 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ArrowLeft, Plus, Loader2, Trash2, CheckCircle2, Circle } from "lucide-react";
+import { ArrowLeft, Plus, Loader2, Trash2, CheckCircle2, Circle, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,7 @@ import {
   useCreateVariant,
   useUpdateVariant,
   useDeleteVariant,
+  useGenerateVariants,
 } from "@/hooks/use-campaigns";
 import { ApiError } from "@/lib/api";
 import type { CampaignStatus } from "@/lib/types";
@@ -41,6 +42,15 @@ const variantSchema = z.object({
 
 type VariantFormValues = z.infer<typeof variantSchema>;
 
+const generateSchema = z.object({
+  base_subject: z.string().min(1, "Required"),
+  base_html_body: z.string().min(1, "Required"),
+  base_text_body: z.string().min(1, "Required"),
+  count: z.coerce.number().int().min(1).max(12),
+});
+
+type GenerateFormValues = z.infer<typeof generateSchema>;
+
 const statusVariant: Record<CampaignStatus, "secondary" | "default" | "success" | "warning" | "outline"> = {
   draft: "secondary",
   content: "default",
@@ -53,10 +63,12 @@ const statusVariant: Record<CampaignStatus, "secondary" | "default" | "success" 
 function CampaignDetail() {
   const { campaignId } = Route.useParams();
   const [open, setOpen] = useState(false);
+  const [generateOpen, setGenerateOpen] = useState(false);
   const { data: campaign, isPending } = useCampaign(campaignId);
   const createVariant = useCreateVariant(campaignId);
   const updateVariant = useUpdateVariant(campaignId);
   const deleteVariant = useDeleteVariant(campaignId);
+  const generateVariants = useGenerateVariants(campaignId);
 
   const {
     register,
@@ -64,6 +76,16 @@ function CampaignDetail() {
     reset,
     formState: { errors },
   } = useForm<VariantFormValues>({ resolver: zodResolver(variantSchema) });
+
+  const {
+    register: registerGenerate,
+    handleSubmit: handleGenerateSubmit,
+    reset: resetGenerate,
+    formState: { errors: generateErrors },
+  } = useForm<GenerateFormValues>({
+    resolver: zodResolver(generateSchema),
+    defaultValues: { count: 10 },
+  });
 
   async function onSubmit(values: VariantFormValues) {
     try {
@@ -73,6 +95,29 @@ function CampaignDetail() {
       setOpen(false);
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Failed to add variant");
+    }
+  }
+
+  async function onGenerateSubmit(values: GenerateFormValues) {
+    try {
+      const result = await generateVariants.mutateAsync(values);
+      if (result.flagged_count > 0) {
+        toast.warning(
+          `Added ${result.variants.length} variants — ${result.flagged_count} contain possible spam-trigger wording, review before approving.`,
+        );
+      } else {
+        toast.success(`Added ${result.variants.length} AI-generated variants`);
+      }
+      resetGenerate({ base_subject: "", base_html_body: "", base_text_body: "", count: 10 });
+      setGenerateOpen(false);
+    } catch (err) {
+      toast.error(
+        err instanceof ApiError
+          ? err.status === 502
+            ? "AI generation isn't configured yet — set ANTHROPIC_API_KEY on the backend."
+            : err.message
+          : "Failed to generate variants",
+      );
     }
   }
 
@@ -117,42 +162,107 @@ function CampaignDetail() {
             <h1 className="text-xl font-semibold tracking-tight">{campaign.name}</h1>
             <Badge variant={statusVariant[campaign.status]}>{campaign.status}</Badge>
           </div>
-          <Dialog open={open} onOpenChange={setOpen}>
-            <Button size="sm" onClick={() => setOpen(true)}>
-              <Plus className="size-4" /> Add variant
-            </Button>
-            <DialogContent className="max-w-lg">
-              <DialogHeader>
-                <DialogTitle>Add variant</DialogTitle>
-                <DialogDescription>
-                  Write the subject and body for this variant. AI-assisted generation comes next.
-                </DialogDescription>
-              </DialogHeader>
-              <form className="flex flex-col gap-3" onSubmit={handleSubmit(onSubmit)}>
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="subject">Subject</Label>
-                  <Input id="subject" placeholder="5 new jobs this week" {...register("subject")} />
-                  {errors.subject && <p className="text-destructive text-xs">{errors.subject.message}</p>}
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="html_body">HTML body</Label>
-                  <Textarea id="html_body" rows={5} placeholder="<p>Hi there…</p>" {...register("html_body")} />
-                  {errors.html_body && <p className="text-destructive text-xs">{errors.html_body.message}</p>}
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="text_body">Plain text body</Label>
-                  <Textarea id="text_body" rows={3} placeholder="Hi there…" {...register("text_body")} />
-                  {errors.text_body && <p className="text-destructive text-xs">{errors.text_body.message}</p>}
-                </div>
-                <DialogFooter className="mt-2">
-                  <Button type="submit" disabled={createVariant.isPending}>
-                    {createVariant.isPending && <Loader2 className="size-4 animate-spin" />}
-                    Add variant
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <div className="flex items-center gap-2">
+            <Dialog open={generateOpen} onOpenChange={setGenerateOpen}>
+              <Button size="sm" variant="outline" onClick={() => setGenerateOpen(true)}>
+                <Sparkles className="size-4" /> Generate with AI
+              </Button>
+              <DialogContent className="max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>Generate variants with AI</DialogTitle>
+                  <DialogDescription>
+                    Give Claude a base subject/body and it'll draft variants for you to review and
+                    approve — nothing is sent without your sign-off.
+                  </DialogDescription>
+                </DialogHeader>
+                <form className="flex flex-col gap-3" onSubmit={handleGenerateSubmit(onGenerateSubmit)}>
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="base_subject">Base subject</Label>
+                    <Input
+                      id="base_subject"
+                      placeholder="5 new jobs this week"
+                      {...registerGenerate("base_subject")}
+                    />
+                    {generateErrors.base_subject && (
+                      <p className="text-destructive text-xs">{generateErrors.base_subject.message}</p>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="base_html_body">Base HTML body</Label>
+                    <Textarea
+                      id="base_html_body"
+                      rows={5}
+                      placeholder="<p>Hi there…</p>"
+                      {...registerGenerate("base_html_body")}
+                    />
+                    {generateErrors.base_html_body && (
+                      <p className="text-destructive text-xs">{generateErrors.base_html_body.message}</p>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="base_text_body">Base plain text body</Label>
+                    <Textarea
+                      id="base_text_body"
+                      rows={3}
+                      placeholder="Hi there…"
+                      {...registerGenerate("base_text_body")}
+                    />
+                    {generateErrors.base_text_body && (
+                      <p className="text-destructive text-xs">{generateErrors.base_text_body.message}</p>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="count">Number of variants</Label>
+                    <Input id="count" type="number" min={1} max={12} {...registerGenerate("count")} />
+                    {generateErrors.count && (
+                      <p className="text-destructive text-xs">{generateErrors.count.message}</p>
+                    )}
+                  </div>
+                  <DialogFooter className="mt-2">
+                    <Button type="submit" disabled={generateVariants.isPending}>
+                      {generateVariants.isPending && <Loader2 className="size-4 animate-spin" />}
+                      Generate
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={open} onOpenChange={setOpen}>
+              <Button size="sm" onClick={() => setOpen(true)}>
+                <Plus className="size-4" /> Add variant
+              </Button>
+              <DialogContent className="max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>Add variant</DialogTitle>
+                  <DialogDescription>Write the subject and body for this variant by hand.</DialogDescription>
+                </DialogHeader>
+                <form className="flex flex-col gap-3" onSubmit={handleSubmit(onSubmit)}>
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="subject">Subject</Label>
+                    <Input id="subject" placeholder="5 new jobs this week" {...register("subject")} />
+                    {errors.subject && <p className="text-destructive text-xs">{errors.subject.message}</p>}
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="html_body">HTML body</Label>
+                    <Textarea id="html_body" rows={5} placeholder="<p>Hi there…</p>" {...register("html_body")} />
+                    {errors.html_body && <p className="text-destructive text-xs">{errors.html_body.message}</p>}
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="text_body">Plain text body</Label>
+                    <Textarea id="text_body" rows={3} placeholder="Hi there…" {...register("text_body")} />
+                    {errors.text_body && <p className="text-destructive text-xs">{errors.text_body.message}</p>}
+                  </div>
+                  <DialogFooter className="mt-2">
+                    <Button type="submit" disabled={createVariant.isPending}>
+                      {createVariant.isPending && <Loader2 className="size-4 animate-spin" />}
+                      Add variant
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
         <p className="text-muted-foreground text-sm">
           {campaign.site} · {approvedCount} of {campaign.variants.length} variants approved

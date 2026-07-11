@@ -6,7 +6,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    app_name: str = "Mail-AI"
+    app_name: str = "Nirop AI"
     environment: str = "development"
 
     database_url: str = "postgresql+asyncpg://mailai:mailai@localhost:5432/mailai"
@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     smtp_encryption_key: str = "change-me-32-bytes-min-for-aesgcm"
 
     anthropic_api_key: str | None = None
+    anthropic_model: str = "claude-sonnet-5"
 
     google_service_account_json: str | None = None
 

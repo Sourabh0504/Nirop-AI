@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.models.models import CampaignStatus
 
@@ -57,3 +57,15 @@ class CampaignRead(BaseModel):
 
 class CampaignDetail(CampaignRead):
     variants: list[CampaignVariantRead]
+
+
+class VariantGenerateRequest(BaseModel):
+    base_subject: str
+    base_html_body: str
+    base_text_body: str
+    count: int = Field(default=10, ge=1, le=12)
+
+
+class VariantGenerateResponse(BaseModel):
+    variants: list[CampaignVariantRead]
+    flagged_count: int

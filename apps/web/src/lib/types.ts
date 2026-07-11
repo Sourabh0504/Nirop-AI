@@ -67,3 +67,15 @@ export interface VariantCreateInput {
   html_body: string;
   text_body: string;
 }
+
+export interface VariantGenerateInput {
+  base_subject: string;
+  base_html_body: string;
+  base_text_body: string;
+  count: number;
+}
+
+export interface VariantGenerateResult {
+  variants: CampaignVariant[];
+  flagged_count: number;
+}

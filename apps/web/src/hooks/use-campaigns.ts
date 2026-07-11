@@ -6,6 +6,8 @@ import type {
   CampaignDetail,
   CampaignVariant,
   VariantCreateInput,
+  VariantGenerateInput,
+  VariantGenerateResult,
 } from "@/lib/types";
 
 const CAMPAIGNS_KEY = ["campaigns"];
@@ -51,6 +53,17 @@ export function useCreateVariant(campaignId: string) {
   return useMutation({
     mutationFn: (payload: VariantCreateInput) =>
       api.post<CampaignVariant>(`/api/campaigns/${campaignId}/variants`, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: campaignKey(campaignId) });
+    },
+  });
+}
+
+export function useGenerateVariants(campaignId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: VariantGenerateInput) =>
+      api.post<VariantGenerateResult>(`/api/campaigns/${campaignId}/variants/generate`, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: campaignKey(campaignId) });
     },

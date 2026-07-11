@@ -13,7 +13,10 @@ from app.schemas.campaign import (
     CampaignVariantCreate,
     CampaignVariantRead,
     CampaignVariantUpdate,
+    VariantGenerateRequest,
+    VariantGenerateResponse,
 )
+from app.services.ai_variants import VariantGenerationError, generate_variants
 
 router = APIRouter(prefix="/api/campaigns", tags=["campaigns"])
 
@@ -85,6 +88,42 @@ async def create_variant(
     await db.commit()
     await db.refresh(variant)
     return variant
+
+
+@router.post("/{campaign_id}/variants/generate", response_model=VariantGenerateResponse)
+async def generate_campaign_variants(
+    campaign_id: str, payload: VariantGenerateRequest, db: DbSession, _current_user: CurrentUser
+) -> VariantGenerateResponse:
+    campaign = await _get_campaign_or_404(db, campaign_id)
+
+    try:
+        generated = generate_variants(
+            payload.base_subject, payload.base_html_body, payload.base_text_body, payload.count
+        )
+    except VariantGenerationError as exc:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(exc)) from exc
+
+    next_index = len(campaign.variants)
+    flagged_count = 0
+    created: list[CampaignVariant] = []
+    for offset, item in enumerate(generated):
+        if item["spam_flags"]:
+            flagged_count += 1
+        variant = CampaignVariant(
+            campaign_id=campaign.id,
+            variant_index=next_index + offset,
+            subject=item["subject"],
+            html_body=item["html_body"],
+            text_body=item["text_body"],
+        )
+        db.add(variant)
+        created.append(variant)
+
+    await db.commit()
+    for variant in created:
+        await db.refresh(variant)
+
+    return VariantGenerateResponse(variants=created, flagged_count=flagged_count)
 
 
 @router.patch("/{campaign_id}/variants/{variant_id}", response_model=CampaignVariantRead)
