@@ -35,7 +35,7 @@ export function Topbar() {
   }
 
   return (
-    <header className="border-border/60 bg-background/85 sticky top-0 z-40 flex h-16 items-center justify-between border-b px-6 backdrop-blur-md">
+    <header className="border-border/50 bg-background/65 backdrop-saturate-150 sticky top-0 z-40 flex h-16 items-center justify-between border-b px-6 backdrop-blur-xl">
       <div
         className={cn(
           "flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium",

@@ -20,7 +20,12 @@ export function Sidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   return (
-    <aside className="bg-sidebar text-sidebar-foreground border-sidebar-border hidden w-60 shrink-0 flex-col border-r md:flex">
+    <aside className="bg-sidebar text-sidebar-foreground border-sidebar-border relative hidden w-60 shrink-0 flex-col overflow-hidden border-r md:flex">
+      <div
+        className="bg-sidebar-primary pointer-events-none absolute -top-24 -left-16 size-72 rounded-full opacity-[0.12] blur-[90px]"
+        aria-hidden="true"
+      />
+
       <div className="relative flex h-16 items-center gap-2.5 px-5">
         <div className="relative">
           <div
@@ -44,7 +49,7 @@ export function Sidebar() {
               className={cn(
                 "relative flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-all active:scale-[0.98]",
                 active
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
+                  ? "bg-sidebar-accent/80 text-sidebar-accent-foreground shadow-sm backdrop-blur-sm"
                   : "text-sidebar-foreground/65 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground",
               )}
             >

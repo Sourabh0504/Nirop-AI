@@ -82,8 +82,19 @@ function Login() {
         />
       </div>
 
-      <div className="flex w-full flex-col items-center justify-center px-6 lg:w-1/2">
-        <div className="flex w-full max-w-sm flex-col gap-6">
+      <div className="relative flex w-full flex-col items-center justify-center overflow-hidden px-6 lg:w-1/2">
+        <div
+          className="pointer-events-none absolute -top-20 right-0 size-80 rounded-full opacity-[0.1] blur-[100px]"
+          style={{ background: "var(--chart-1)" }}
+          aria-hidden="true"
+        />
+        <div
+          className="pointer-events-none absolute -bottom-24 -left-10 size-72 rounded-full opacity-[0.08] blur-[100px]"
+          style={{ background: "var(--primary)" }}
+          aria-hidden="true"
+        />
+
+        <div className="surface-elevated bg-card/60 border-border/40 relative flex w-full max-w-sm flex-col gap-6 rounded-2xl border p-8 backdrop-blur-xl backdrop-saturate-150">
           <div className="flex flex-col gap-1.5">
             <h1 className="font-display text-xl font-semibold tracking-tight">Sign in</h1>
             <p className="text-muted-foreground text-sm">Welcome back — enter your credentials to continue.</p>

@@ -332,9 +332,25 @@
   }
 }
 
+@keyframes drift-a {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(40px, -30px) scale(1.08); }
+}
+
+@keyframes drift-b {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-35px, 25px) scale(1.05); }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .animate-in-up {
     animation: fade-in-up 0.4s var(--ease-spring) both;
+  }
+  .animate-drift-a {
+    animation: drift-a 22s ease-in-out infinite;
+  }
+  .animate-drift-b {
+    animation: drift-b 26s ease-in-out infinite;
   }
 }
 

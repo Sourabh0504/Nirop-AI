@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
+import { AmbientBackground } from "@/components/layout/ambient-background";
 import { api } from "@/lib/api";
 import type { User } from "@/lib/types";
 
@@ -18,6 +19,7 @@ export const Route = createFileRoute("/_app")({
 function AppLayout() {
   return (
     <div className="flex h-screen w-full overflow-hidden">
+      <AmbientBackground />
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar />
