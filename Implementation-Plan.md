@@ -116,7 +116,6 @@ class Subscriber(Base):
     email: Mapped[str] = mapped_column(unique=True, index=True)  # stored lowercase
     first_name: Mapped[str | None]
     last_name: Mapped[str | None]
-    source_site: Mapped[str]                          # "jobsociety" | "testingsociety"
     tags: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
     status: Mapped[SubscriberStatus] = mapped_column(default=SubscriberStatus.ACTIVE, index=True)
     source_row_hash: Mapped[str | None]                # for incremental Sheets sync
@@ -300,10 +299,25 @@ def check_rate_limit(mailbox_id: str, per_minute_limit: int, daily_limit: int) -
 
 ## 6. Google Sheets sync
 
-- Service account (`google-api-python-client`) with read access to both sheets (JobSociety, TestingSociety).
-- Pull rows, compute a hash per row (email+name+tags) into `source_row_hash` to detect changes and support incremental sync.
-- Upsert into `Subscriber` by lowercase email; skip rows already `UNSUBSCRIBED`/`SUPPRESSED`.
-- Log a per-sync summary (rows read, upserted, skipped-suppressed, invalid-email) surfaced on the dashboard.
+**Audiences are shared** — JobSociety and TestingSociety draw from the same subscriber base (confirmed with the user), not two separate lists. `Subscriber.source_site` has been dropped entirely (migration `1773ce559437`); every campaign dispatches to the full active subscriber list regardless of which site it's for. This directly shapes the sheet design below: one workbook, **one tab**, no per-site split — splitting by site would have meant duplicate/drifting rows for people on both lists.
+
+**Sheet structure** (agreed with the user):
+
+| Column | Required? | Notes |
+|---|---|---|
+| Email | Required | Unique key, case-insensitive dedup — maps to `Subscriber.email`. |
+| First Name | Optional | → `Subscriber.first_name` |
+| Last Name | Optional | → `Subscriber.last_name` |
+| Labels | Optional | Comma-separated → `Subscriber.tags`. The only per-subscriber segmentation field now that site is gone. |
+| Status | Optional | Blank/`Active` or `Unsubscribe` — manual suppress override. DB state always wins (a real unsubscribe-link click is never undone by this cell reading `Active`). |
+| Date Added | Optional | User's own record of true subscribe date; not synced into a DB field yet — candidate for a future `subscribed_at` column feeding list-hygiene automation (sunset after N months, per Plan.md). |
+| Source | Optional | `Manual` / `Website` / `Referral` / `Import` — not used yet, feeds future per-segment AI generation (Phase 4 step 11). |
+| Sync Status | Auto (write-back) | Sync writes `✅ Synced` / `❌ Invalid email` / `⚠️ Unsubscribed — skipped` per row after each run. Requires write access, not just read. |
+
+- Service account (`google-api-python-client`) with read (and write, for the Sync Status column) access to the one sheet.
+- Pull rows, compute a hash per row (email+name+labels) into `source_row_hash` to detect changed rows and support incremental sync.
+- Upsert into `Subscriber` by lowercase email; skip rows already `UNSUBSCRIBED`/`SUPPRESSED` in the DB (never reactivated by the sheet); a row's `Status = Unsubscribe` suppresses regardless of current DB state.
+- Log a per-sync summary (rows read, upserted, skipped-suppressed, invalid-email) surfaced on the dashboard, and write per-row Sync Status back to the sheet.
 
 ---
 
